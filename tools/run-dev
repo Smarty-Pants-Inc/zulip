@@ -153,7 +153,13 @@ if options.clear_memcached:
 
 # Set up a new process group, so that we can later kill run{server,tornado}
 # and all of the processes they spawn.
-os.setpgrp()
+#
+# In some containerized/exec'd environments, setpgrp can fail with EPERM.
+# That's OK for local dev; stop-run-dev just won't be able to kill the full tree.
+try:
+    os.setpgrp()
+except PermissionError:
+    pass
 
 # Save pid of parent process to the pid file. It can be used later by
 # tools/stop-run-dev to kill the server without having to find the

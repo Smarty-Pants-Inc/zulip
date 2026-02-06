@@ -5,6 +5,7 @@ import type * as tippy from "tippy.js";
 import render_delete_topic_modal from "../templates/confirm_dialog/confirm_delete_topic.hbs";
 import render_left_sidebar_topic_actions_popover from "../templates/popovers/left_sidebar/left_sidebar_topic_actions_popover.hbs";
 
+import * as agents_overlay_ui from "./agents_overlay_ui.ts";
 import * as clipboard_handler from "./clipboard_handler.ts";
 import * as confirm_dialog from "./confirm_dialog.ts";
 import {$t_html} from "./i18n.ts";
@@ -15,6 +16,7 @@ import * as popover_menus from "./popover_menus.ts";
 import * as popover_menus_data from "./popover_menus_data.ts";
 import * as starred_messages_ui from "./starred_messages_ui.ts";
 import {realm} from "./state_data.ts";
+import * as stream_data from "./stream_data.ts";
 import * as stream_popover from "./stream_popover.ts";
 import * as stream_topic_history from "./stream_topic_history.ts";
 import * as ui_util from "./ui_util.ts";
@@ -247,6 +249,17 @@ export function initialize(): void {
                         topic_name,
                         true,
                     );
+                    popover_menus.hide_current_popover_if_visible(instance);
+                });
+
+                $popper.one("click", ".sidebar-popover-edit-thread-memory", () => {
+                    const sub = stream_data.get_sub_by_id(stream_id);
+                    agents_overlay_ui.launch({
+                        scope: "thread",
+                        stream_id,
+                        stream_name: sub?.name,
+                        topic: topic_name,
+                    });
                     popover_menus.hide_current_popover_if_visible(instance);
                 });
 

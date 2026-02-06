@@ -186,6 +186,20 @@ from zerver.views.scheduled_messages import (
     update_scheduled_message_backend,
 )
 from zerver.views.sentry import sentry_tunnel
+from zerver.views.smarty_pants import (
+    archive_smarty_pants_agent,
+    attach_smarty_pants_agent,
+    create_agent_memory_block,
+    create_smarty_pants_agent,
+    delete_agent_memory_block,
+    get_smarty_pants_memory,
+    list_agent_memory_blocks,
+    list_smarty_pants_agents,
+    pause_smarty_pants_agent,
+    set_smarty_pants_agent_budget,
+    set_smarty_pants_memory,
+    update_agent_memory_block,
+)
 from zerver.views.storage import get_storage, remove_storage, update_storage
 from zerver.views.streams import (
     add_default_stream,
@@ -579,6 +593,27 @@ v1_api_and_json_patterns = [
     rest_path("channel_folders/create", POST=create_channel_folder),
     rest_path("channel_folders", GET=get_channel_folders, PATCH=reorder_realm_channel_folders),
     rest_path("channel_folders/<int:channel_folder_id>", PATCH=update_channel_folder),
+    # smarty_pants -> zerver.views.smarty_pants
+    rest_path("smarty_pants/agents", GET=list_smarty_pants_agents, POST=create_smarty_pants_agent),
+    rest_path("smarty_pants/agents/attach", POST=attach_smarty_pants_agent),
+    rest_path("smarty_pants/agents/<str:agent_id>/archive", POST=archive_smarty_pants_agent),
+    rest_path("smarty_pants/agents/<str:agent_id>/pause", POST=pause_smarty_pants_agent),
+    rest_path(
+        "smarty_pants/agents/<str:agent_id>/budget",
+        PATCH=set_smarty_pants_agent_budget,
+        POST=set_smarty_pants_agent_budget,
+    ),
+    rest_path("smarty_pants/memory", GET=get_smarty_pants_memory, POST=set_smarty_pants_memory),
+    rest_path(
+        "smarty_pants/agents/<str:agent_id>/memory/blocks",
+        GET=list_agent_memory_blocks,
+        POST=create_agent_memory_block,
+    ),
+    rest_path(
+        "smarty_pants/agents/<str:agent_id>/memory/blocks/<str:block_id>",
+        PATCH=update_agent_memory_block,
+        DELETE=delete_agent_memory_block,
+    ),
     # topic-muting -> zerver.views.user_topics
     # (deprecated and will be removed once clients are migrated to use '/user_topics')
     rest_path("users/me/subscriptions/muted_topics", PATCH=update_muted_topic),

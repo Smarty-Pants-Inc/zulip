@@ -43,6 +43,7 @@ import "../../styles/scheduled_messages.css";
 import "../../styles/drafts.css";
 import "../../styles/input_pill.css";
 import "../../styles/informational_overlays.css";
+import "../../styles/location_memory.css";
 import "../../styles/compose.css";
 import "../../styles/message_edit_history.css";
 import "../../styles/reactions.css";
