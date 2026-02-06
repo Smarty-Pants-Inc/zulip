@@ -337,7 +337,12 @@ def _pick_unique_agent_stream_base_name(
             .order_by("id")
             .first()
         )
-        return existing is not None and existing.folder_id != channel_folder.id
+        # Treat deactivated channels as conflicts too; otherwise we'll "reuse" a
+        # deactivated channel name and end up with no visible channels after create.
+        return (
+            existing is not None
+            and (existing.deactivated is True or existing.folder_id != channel_folder.id)
+        )
 
     def stream_ok_or_ours(name: str) -> bool:
         existing = (
@@ -345,7 +350,11 @@ def _pick_unique_agent_stream_base_name(
             .order_by("id")
             .first()
         )
-        return existing is None or existing.folder_id == channel_folder.id
+        if existing is None:
+            return True
+        if existing.deactivated is True:
+            return False
+        return existing.folder_id == channel_folder.id
 
     # If the full set doesn't conflict, we're good.
     def all_channels_available(candidate_base: str) -> bool:
