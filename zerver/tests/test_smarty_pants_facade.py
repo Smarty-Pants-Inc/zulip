@@ -7,7 +7,7 @@ from unittest import mock
 import orjson
 import requests
 
-from zerver.actions.streams import ensure_stream
+from zerver.lib.streams import ensure_stream
 from zerver.actions.user_groups import check_add_user_group
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.models.realms import get_realm
@@ -21,6 +21,57 @@ class SmartyPantsFacadeTestCase(ZulipTestCase):
             result,
             "The 'Sponsors' user group is missing in this organization. Create it (or contact an administrator) to manage Smarty Pants agents.",
         )
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_CONTROL_PLANE_BASE_URL": "http://example.com",
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.SmartyPantsControlPlaneSession.request")
+    def test_create_agent_does_not_hijack_existing_stream(self, mock_request: mock.Mock) -> None:
+        """Creating an agent named 'Test' should not hijack an existing '#test' channel.
+
+        Zulip channel names are case-insensitive. Dev realms often already have a "test"
+        channel seeded with sample topics/messages.
+
+        The agent provisioning logic must avoid moving that channel into the agent's folder.
+        """
+
+        realm = get_realm("zulip")
+        hamlet = self.example_user("hamlet")
+        check_add_user_group(realm, "Sponsors", [hamlet], acting_user=hamlet)
+
+        # Create a pre-existing stream that would otherwise collide.
+        existing_stream = ensure_stream(realm, "test", acting_user=hamlet)
+        existing_folder_id = existing_stream.folder_id
+
+        mock_response = mock.Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"result": "success"}
+        mock_request.return_value = mock_response
+
+        self.login("hamlet")
+        result = self.client_post(
+            "/json/smarty_pants/agents",
+            {
+                "name": "Test",
+                # Avoid calling smartyd in this unit test.
+                "runtimeAgentId": "runtime-agent-123",
+            },
+        )
+        response_dict = self.assert_json_success(result)
+
+        stream_names = [s["name"] for s in response_dict["streams"]]
+
+        # We should NOT have claimed the pre-existing 'test' channel.
+        assert "test" not in [name.lower() for name in stream_names]
+
+        # And the original stream should not have been moved.
+        existing_stream.refresh_from_db()
+        assert existing_stream.folder_id == existing_folder_id
 
     def test_user_not_in_sponsors_group(self) -> None:
         realm = get_realm("zulip")
@@ -84,6 +135,8 @@ class SmartyPantsFacadeTestCase(ZulipTestCase):
                     "binding": {
                         "id": "binding_1",
                         "zulipBotUserId": 999,
+                        "zulipBotEmail": "bot@zulipdev.com",
+                        "zulipBotApiKey": "zulip-bot-api-key",
                         "disabledAt": None,
                     },
                 }
@@ -782,10 +835,10 @@ class SmartyPantsMemoryBlocksFacadeEndpointsTestCase(ZulipTestCase):
         mock_request.return_value = mock_response
 
         self.login("hamlet")
+        # Use form-encoded data, consistent with Zulip's public API.
         result = self.client_patch(
             self._memory_block_url(),
-            orjson.dumps({"label": " new ", "value": "v2"}).decode(),
-            content_type="application/json",
+            {"label": " new ", "value": "v2"},
         )
         self.assert_json_success(result)
 

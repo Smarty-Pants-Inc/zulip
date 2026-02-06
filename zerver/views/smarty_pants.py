@@ -299,15 +299,93 @@ def _truncate(s: str, max_len: int) -> str:
     return s[:max_len].rstrip()
 
 
-def _agent_stream_names(agent_name: str) -> list[str]:
-    suffixes = ["", ": heartbeat", ": announcements"]
+_AGENT_STREAM_SUFFIXES = ["", ": heartbeat", ": announcements"]
+
+
+def _pick_unique_agent_stream_base_name(
+    realm: Realm,
+    *,
+    channel_folder: ChannelFolder,
+    desired_base: str,
+) -> str:
+    """Pick a base name for the agent's home channel without hijacking existing channels.
+
+    Zulip channel names are case-insensitive and must be unique within a realm. In a dev
+    realm, generic names like "test" often already exist (with sample topics/messages).
+
+    We do **not** want to move that existing channel into the agent's folder, because
+    that would make the new agent appear to have random pre-existing threads.
+
+    Strategy:
+    - If the desired channel name (and its derived channels) are free, use it.
+    - If any conflict exists outside the agent's channel folder, disambiguate by
+      appending " (agent)", " (agent 2)", etc.
+
+    We also cap the base length so the derived channels (": heartbeat", ": announcements")
+    fit within `Stream.MAX_NAME_LENGTH`.
+    """
+
+    suffixes = _AGENT_STREAM_SUFFIXES
     max_suffix_len = max(len(s) for s in suffixes)
     base_max = max(1, Stream.MAX_NAME_LENGTH - max_suffix_len)
-    base = agent_name.strip() or "agent"
-    base = _truncate(base, base_max)
-    names = [base + suffix for suffix in suffixes]
-    # Ensure names fit max length even after truncation edge cases.
-    return [_truncate(name, Stream.MAX_NAME_LENGTH) for name in names]
+
+    base = _truncate(desired_base.strip() or "agent", base_max)
+
+    def stream_conflicts(name: str) -> bool:
+        existing = (
+            Stream.objects.filter(realm=realm, name__iexact=name)
+            .order_by("id")
+            .first()
+        )
+        return existing is not None and existing.folder_id != channel_folder.id
+
+    def stream_ok_or_ours(name: str) -> bool:
+        existing = (
+            Stream.objects.filter(realm=realm, name__iexact=name)
+            .order_by("id")
+            .first()
+        )
+        return existing is None or existing.folder_id == channel_folder.id
+
+    # If the full set doesn't conflict, we're good.
+    def all_channels_available(candidate_base: str) -> bool:
+        for suffix in suffixes:
+            name = _truncate(candidate_base + suffix, Stream.MAX_NAME_LENGTH)
+            if not stream_ok_or_ours(name):
+                return False
+        return True
+
+    if all_channels_available(base):
+        return base
+
+    # Disambiguate base until the whole set is available.
+    for n in range(1, 50):
+        extra = " (agent)" if n == 1 else f" (agent {n})"
+        # Ensure extra survives truncation.
+        prefix_max = max(1, base_max - len(extra))
+        candidate_base = _truncate(base, prefix_max) + extra
+
+        # Fast fail: if *base* itself conflicts outside folder, skip.
+        if stream_conflicts(_truncate(candidate_base, Stream.MAX_NAME_LENGTH)):
+            continue
+
+        if all_channels_available(candidate_base):
+            return candidate_base
+
+    raise JsonableError(
+        _(
+            "Channel name '{name}' is unavailable in this organization. Please choose a different agent name."
+        ).format(name=desired_base)
+    )
+
+
+def _agent_stream_names(realm: Realm, channel_folder: ChannelFolder, agent_name: str) -> list[str]:
+    base = _pick_unique_agent_stream_base_name(
+        realm,
+        channel_folder=channel_folder,
+        desired_base=agent_name,
+    )
+    return [_truncate(base + suffix, Stream.MAX_NAME_LENGTH) for suffix in _AGENT_STREAM_SUFFIXES]
 
 
 def _get_sponsors_group(user_profile: UserProfile) -> NamedUserGroup:
@@ -439,7 +517,7 @@ def _provision_zulip_objects_for_agent(
     bot_user = _ensure_agent_bot_user(user_profile, agent_name=agent_name, runtime_agent_id=runtime_agent_id)
 
     streams: list[Stream] = []
-    for stream_name in _agent_stream_names(agent_name):
+    for stream_name in _agent_stream_names(user_profile.realm, channel_folder, agent_name):
         stream, _created = create_stream_if_needed(
             user_profile.realm,
             stream_name,
@@ -451,8 +529,8 @@ def _provision_zulip_objects_for_agent(
             folder=channel_folder,
             acting_user=user_profile,
         )
-        if stream.folder_id != channel_folder.id:
-            do_change_stream_folder(stream, channel_folder, acting_user=user_profile)
+        # IMPORTANT: do not move an existing channel into this folder; name conflicts are
+        # resolved by `_agent_stream_names` to avoid hijacking a pre-existing channel.
         streams.append(stream)
 
     sponsors = _get_active_sponsors(user_profile, sponsors_group)
