@@ -89,3 +89,7 @@ core
 ## Miscellaneous
 # (Ideally this section is empty.)
 .transifexrc
+
+# Local dev artifacts (Smarty Pants)
+/earthseed.run-dev.hostpid
+/earthseed.run-dev.log

@@ -1,0 +1,21 @@
+{{#each blocks}}
+    <div class="memory-block" data-block-id="{{id}}">
+        <div class="memory-block-label-container">
+            <input type="text" class="input-element memory-block-label" value="{{label}}" readonly />
+        </div>
+        <div class="memory-block-description-container">
+            <input type="text" class="input-element memory-block-description" value="{{description}}" />
+        </div>
+        <div class="memory-block-value-container">
+            <textarea class="input-element memory-block-value" rows="5">{{value}}</textarea>
+        </div>
+        <div class="memory-block-controls">
+            <button type="button" class="action-button save-memory-block-button">{{t 'Save' }}</button>
+            <button type="button" class="action-button action-button-subtle-danger delete-memory-block-button">{{t 'Delete' }}</button>
+        </div>
+    </div>
+{{else}}
+    <div class="no-overlay-messages">
+        {{t 'No memory blocks.'}}
+    </div>
+{{/each}}

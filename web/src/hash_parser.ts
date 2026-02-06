@@ -62,6 +62,7 @@ export function is_overlay_hash(hash: string | undefined): boolean {
         "channels",
         "drafts",
         "groups",
+        "agents",
         "settings",
         "organization",
         "invite",

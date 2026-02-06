@@ -77,6 +77,14 @@
                     <span class="popover-menu-label">{{t "Copy link to topic" }}</span>
                 </a>
             </li>
+            {{#if show_ai_features}}
+            <li role="none" class="link-item popover-menu-list-item">
+                <a role="menuitem" class="sidebar-popover-edit-thread-memory popover-menu-link" tabindex="0">
+                    <i class="popover-menu-icon zulip-icon zulip-icon-edit" aria-hidden="true"></i>
+                    <span class="popover-menu-label">{{t "Edit thread memory" }}</span>
+                </a>
+            </li>
+            {{/if}}
             {{!-- Group 3 --}}
             {{#if (or can_move_topic can_rename_topic is_realm_admin)}}
                 {{#unless stream_archived}}

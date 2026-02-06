@@ -1,0 +1,74 @@
+/* Location memory editor styles */
+
+.location-memory-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid hsl(0deg 0% 0% / 10%);
+}
+
+.location-memory-section {
+    padding: 0 15px 15px;
+}
+
+.location-memory-header {
+    margin-bottom: 15px;
+
+    h2 {
+        font-size: 1.2em;
+        font-weight: 600;
+        margin: 0 0 5px;
+        color: var(--color-text-default);
+    }
+}
+
+.location-memory-context {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+.location-memory-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.location-memory-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px;
+    font-family: var(--font-family-monospace);
+    font-size: 0.9em;
+    border: 1px solid var(--color-border-sidebar);
+    border-radius: 4px;
+    resize: vertical;
+    background-color: var(--color-background);
+    color: var(--color-text-default);
+
+    &:focus {
+        outline: none;
+        border-color: var(--color-outline-focus);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+#save-location-memory-button {
+    align-self: flex-end;
+    min-width: 80px;
+}
+
+#location_memory_error {
+    margin: 10px 0;
+}
+
+/* Dark theme adjustments */
+.dark-theme {
+    .location-memory-textarea {
+        background-color: var(--color-background-widget);
+        border-color: var(--color-border-sidebar);
+    }
+}
