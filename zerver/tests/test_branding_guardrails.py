@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.test import override_settings
 
 from zerver.lib.test_classes import ZulipTestCase
+from zerver.models import RealmBranding
 
 
 class BrandingGuardrailsTest(ZulipTestCase):
@@ -41,3 +42,19 @@ class BrandingGuardrailsTest(ZulipTestCase):
         page_params = self._get_page_params(result)
         self.assertEqual(page_params["page_type"], "home")
         self.assertEqual(page_params["branding"]["name"], "TestBrand")
+
+    @override_settings(BRAND_NAME="DefaultBrand")
+    def test_realm_branding_override_applies(self) -> None:
+        realm = self.example_user("hamlet").realm
+        RealmBranding.objects.create(realm=realm, name="RealmBrand")
+
+        self.login("hamlet")
+        result = self.client_get("/")
+        self.check_rendered_logged_in_app(result)
+
+        html = result.content.decode()
+        self.assertIn(f"<title>{realm.name} - RealmBrand</title>", html)
+
+        page_params = self._get_page_params(result)
+        self.assertEqual(page_params["page_type"], "home")
+        self.assertEqual(page_params["branding"]["name"], "RealmBrand")

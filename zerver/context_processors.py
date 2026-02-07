@@ -165,8 +165,8 @@ def zulip_default_context(request: HttpRequest) -> dict[str, Any]:
     # Used to remove links to Zulip docs and landing page from footer of self-hosted pages.
     corporate_enabled = settings.CORPORATE_ENABLED
 
-    branding = get_branding_context()
-    page_params_branding = get_branding_page_params()
+    branding = get_branding_context(realm)
+    page_params_branding = get_branding_page_params(branding_context=branding)
 
     support_email = branding["support_email"]
     support_email_html_tag = SafeString(

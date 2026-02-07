@@ -48,6 +48,7 @@ from zerver.models.push_notifications import PushDevice as PushDevice
 from zerver.models.push_notifications import PushDeviceToken as PushDeviceToken
 from zerver.models.realm_audit_logs import AbstractRealmAuditLog as AbstractRealmAuditLog
 from zerver.models.realm_audit_logs import RealmAuditLog as RealmAuditLog
+from zerver.models.realm_branding import RealmBranding as RealmBranding
 from zerver.models.realm_emoji import RealmEmoji as RealmEmoji
 from zerver.models.realm_playgrounds import RealmPlayground as RealmPlayground
 from zerver.models.realms import Realm as Realm

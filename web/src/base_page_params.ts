@@ -1,12 +1,21 @@
 import * as z from "zod/mini";
 
+import {z} from "zod/mini";
+
 import {narrow_term_schema, state_data_schema} from "./state_data.ts";
 
 const t1 = performance.now();
 
-const branding_schema = z.object({
-    name: z.string(),
-});
+// We keep this schema intentionally loose for upstream compatibility.
+// Our frontend only depends on `page_params.branding.name`.
+const branding_schema = z.optional(
+    z.catchall(
+        z.object({
+            name: z.optional(z.string()),
+        }),
+        z.unknown(),
+    ),
+);
 
 // Sync this with zerver.context_processors.zulip_default_context.
 const default_params_schema = z.object({
