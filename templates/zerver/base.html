@@ -3,6 +3,20 @@
 
     {# Base template for the whole site. #}
 
+    {#
+      Error pages can be rendered without our normal context processors.
+      Provide safe fallbacks for values used by shared templates.
+    #}
+    {% if branding is not defined %}
+        {% set branding = {
+            'name': 'Smarty Pants',
+            'support_email': 'support@smartypants.ai',
+            'urls': {
+                'og_image': static('images/favicon.png'),
+            },
+        } %}
+    {% endif %}
+
     <head>
         <meta charset="UTF-8" />
         {% block title %}
@@ -45,7 +59,7 @@
         {% block content %}
         {% endblock %}
 
-        {% set all_page_params = default_page_params.copy() %}
+        {% set all_page_params = (default_page_params|default({})).copy() %}
         {% set _ = all_page_params.update(page_params|default({})) %}
         <div hidden id="page-params" data-params='{{ all_page_params|tojson }}'></div>
     </body>
