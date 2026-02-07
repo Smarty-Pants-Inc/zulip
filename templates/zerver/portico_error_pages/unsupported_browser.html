@@ -17,13 +17,13 @@
             {% endtrans %}
         </p>
         <p>
-            {% trans supported_browsers_page_link="/help/supported-browsers" product_name=branding.name %}
+            {% trans supported_browsers_page_link="/help/supported-browsers", product_name=branding.name %}
             {{ product_name }} supports <a href="{{ supported_browsers_page_link }}">modern browsers</a>
             like Firefox, Chrome, and Edge.
             {% endtrans %}
         </p>
         <p>
-            {% trans apps_page_link=apps_page_url product_name=branding.name %}
+            {% trans apps_page_link=apps_page_url, product_name=branding.name %}
             You can also use the <a href="{{ apps_page_link }}">{{ product_name }} desktop app</a>.
             {% endtrans %}
         </p>

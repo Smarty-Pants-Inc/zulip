@@ -125,7 +125,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1943053 -->
         </div>
         <div id="app-loading-unsupported-desktop-app" hidden>
             <p>
-                {% trans product_name=branding.name apps_url=apps_page_url %}Because you're using a very old version of the desktop app, {{ product_name }} may not load.
+                {% trans product_name=branding.name, apps_url=apps_page_url %}Because you're using a very old version of the desktop app, {{ product_name }} may not load.
                 <a href="{{ apps_url }}" target="_blank" rel="noopener noreferrer">Download the latest version.</a>
                 {% endtrans %}
             </p>

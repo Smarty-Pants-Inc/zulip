@@ -113,7 +113,7 @@
             <div class="copyright">© {{ branding.name }}</div>
             {% else %}
             {% if branding.powered_by_enabled %}
-            <div class="copyright">{% trans brand_name=branding.name brand_url=branding.urls.homepage %}Powered by <a href="{{ brand_url }}">{{ brand_name }}</a>{% endtrans %}</div>
+            <div class="copyright">{% trans brand_name=branding.name, brand_url=branding.urls.homepage %}Powered by <a href="{{ brand_url }}">{{ brand_name }}</a>{% endtrans %}</div>
             {% endif %}
             {% endif %}
             <div class="footer__legal-spacer"></div>
