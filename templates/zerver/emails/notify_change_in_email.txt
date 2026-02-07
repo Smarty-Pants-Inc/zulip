@@ -1,7 +1,7 @@
 {{ _("Hi,") }}
 
-{% trans %}The email associated with your Zulip account was recently changed to {{ new_email }}. If you did not request this change, please contact us immediately at <{{ support_email }}>.{% endtrans %}
+{% trans branding_name=branding_name %}The email associated with your {{ branding_name }} account was recently changed to {{ new_email }}. If you did not request this change, please contact us immediately at <{{ support_email }}>.{% endtrans %}
 
 
 {{ _("Best,") }}
-{{ _("Team Zulip") }}
+{% trans branding_name=branding_name %}Team {{ branding_name }}{% endtrans %}

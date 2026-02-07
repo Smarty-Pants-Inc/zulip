@@ -1,1 +1,1 @@
-{% trans %}Zulip digest for {{ realm_name }}{% endtrans %}
+{% trans branding_name=branding_name %}{{ branding_name }} digest for {{ realm_name }}{% endtrans %}

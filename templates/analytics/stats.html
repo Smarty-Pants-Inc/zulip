@@ -3,8 +3,8 @@
 
 {% block title %}
 <title>
-    {% trans %}
-    Analytics for {{ target_name }} | Zulip
+    {% trans product_name=branding.name %}
+    Analytics for {{ target_name }} | {{ product_name }}
     {% endtrans %}
 </title>
 {% endblock %}
@@ -20,7 +20,7 @@
         {% endif %}
         <div id="id_stats_errors" class="alert alert-error"></div>
         <div class="center-charts">
-            <h1 class="analytics-page-header">{% trans %}Zulip analytics for {{ target_name }}{% endtrans %}</h1>
+            <h1 class="analytics-page-header">{% trans product_name=branding.name %}{{ product_name }} analytics for {{ target_name }}{% endtrans %}</h1>
             <div class="summary-stats">
                 <h1>{{ _("Organization summary") }}</h1>
                 <ul>

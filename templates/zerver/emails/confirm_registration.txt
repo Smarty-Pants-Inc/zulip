@@ -1,10 +1,10 @@
 {% if create_realm %}
-{{ _("You have requested a new Zulip organization:") }}
+{% trans branding_name=branding_name %}You have requested a new {{ branding_name }} organization:{% endtrans %}
 * {% trans %}Organization URL: {{ organization_url }}{% endtrans %}
 
 * {% trans %}Organization type: {{ organization_type }}{% endtrans %}
 {% else %}
-{{ _("You recently signed up for Zulip. Awesome!") }}
+{% trans branding_name=branding_name %}You recently signed up for {{ branding_name }}. Awesome!{% endtrans %}
 {% endif %}
 
 
@@ -18,5 +18,5 @@
 {% if corporate_enabled %}
     {% trans %}Do you have questions or feedback to share? Contact us at {{ support_email }} — we'd love to help!{% endtrans %}
 {% else %}
-    {% trans %}If you have any questions, please contact this Zulip server's administrators at {{ support_email }}.{% endtrans %}
+    {% trans %}If you have any questions, please contact this server's administrators at {{ support_email }}.{% endtrans %}
 {% endif %}

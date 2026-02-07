@@ -15,12 +15,27 @@ import {$t, $t_html} from "./i18n.ts";
 import * as keydown_util from "./keydown_util.ts";
 import * as markdown from "./markdown.ts";
 import * as overlays from "./overlays.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import {postprocess_content} from "./postprocess_content.ts";
 import * as rendered_markdown from "./rendered_markdown.ts";
 import * as scroll_util from "./scroll_util.ts";
 import {current_user} from "./state_data.ts";
 import {user_settings} from "./user_settings.ts";
+
+const brandName = getBrandName(page_params);
+
+function escape_html(text: string): string {
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+const pythonBrandNameLiteral = JSON.stringify(brandName);
+const pythonBrandNameLiteralHtml = escape_html(pythonBrandNameLiteral);
 
 // Make it explicit that our toggler is undefined until
 // set_up_toggler is called.
@@ -53,7 +68,7 @@ const markdown_help_rows = [
         markdown: ":heart:",
     },
     {
-        markdown: `[${$t({defaultMessage: "Zulip website"})}](https://zulip.org)`,
+        markdown: `[${$t({defaultMessage: "{brandName} website"}, {brandName})}](https://zulip.org)`,
         usage_html: format_usage_html("Ctrl", "Shift", "L"),
     },
     {
@@ -126,7 +141,7 @@ ${$t({defaultMessage: "This text won't be visible until the user clicks."})}
         markdown: `\
 \`\`\`
 def f():
-    print("Zulip")
+    print(${pythonBrandNameLiteral})
 \`\`\``,
         usage_html: format_usage_html("Ctrl", "Shift", "C"),
     },
@@ -134,13 +149,13 @@ def f():
         markdown: `\
 \`\`\`python
 def f():
-    print("Zulip")
+    print(${pythonBrandNameLiteral})
 \`\`\``,
         // output_html required because we don't have pygments in the web app processor.
         output_html: `\
 <div class="codehilite zulip-code-block" data-code-language="Python"><pre><div class="code-buttons-container">
     </span></div><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">():</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Zulip"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">${pythonBrandNameLiteralHtml}</span><span class="p">)</span>
 </code></pre></div>`,
     },
     {

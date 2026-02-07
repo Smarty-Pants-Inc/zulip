@@ -1,7 +1,7 @@
 {% extends "zerver/portico_signup.html" %}
 
 {% block title %}
-<title>{{ _("Select account for authentication") }} | Zulip</title>
+<title>{{ _("Select account for authentication") }} | {{ branding.name }}</title>
 {% endblock %}
 
 {% block portico_content %}
@@ -70,8 +70,8 @@
             {% endtrans %}
         </p>
         <p>
-            {% trans %}
-            To use one of these to log in to Zulip, you must first
+            {% trans product_name=branding.name %}
+            To use one of these to log in to {{ product_name }}, you must first
             <a href="https://github.com/settings/emails">verify it with GitHub.</a>
             {% endtrans %}
         </p>

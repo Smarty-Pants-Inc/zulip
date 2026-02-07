@@ -1,15 +1,15 @@
 {% if organization_type == "business" %}
-{{ _("Zulip guide for businesses") }}
+{% trans %}Guide for businesses{% endtrans %}
 {% elif organization_type == "opensource" %}
-{{ _("Zulip guide for open-source projects") }}
+{% trans %}Guide for open-source projects{% endtrans %}
 {% elif organization_type == "education" %}
-{{ _("Zulip guide for education") }}
+{% trans %}Guide for education{% endtrans %}
 {% elif organization_type == "research" %}
-{{ _("Zulip guide for research") }}
+{% trans %}Guide for research{% endtrans %}
 {% elif organization_type == "event" %}
-{{ _("Zulip guide for events and conferences") }}
+{% trans %}Guide for events and conferences{% endtrans %}
 {% elif organization_type == "nonprofit" %}
-{{ _("Zulip guide for non-profits") }}
+{% trans %}Guide for non-profits{% endtrans %}
 {% elif organization_type == "community" %}
-{{ _("Zulip guide for communities") }}
+{% trans %}Guide for communities{% endtrans %}
 {% endif %}

@@ -16,7 +16,7 @@
         {% if released_version %}
         <p>You are receiving this email because you opted into release notifications.</p>
         {% else %}
-        <p>You are receiving this email to update you about important changes to Zulip's Terms of Service.</p>
+        <p>You are receiving this email to update you about important changes to {{ branding_name }}'s Terms of Service.</p>
         <a href="{{ unsubscribe_link }}">Unsubscribe</a>
         {% endif %}
     {% elif unsubscribe_link %}

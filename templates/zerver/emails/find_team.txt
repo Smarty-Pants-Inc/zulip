@@ -2,9 +2,9 @@
 {{ _("Thanks for your request!") }}
 
 {% if corporate_enabled %}
-{% trans %}Your email address {{ email }} has accounts with the following Zulip Cloud organizations:{% endtrans %}
+{% trans branding_name=branding_name %}Your email address {{ email }} has accounts with the following {{ branding_name }} Cloud organizations:{% endtrans %}
 {% else %}
-{% trans %}Your email address {{ email }} has accounts with the following Zulip organizations hosted by {{ external_host }}:{% endtrans %}
+{% trans branding_name=branding_name %}Your email address {{ email }} has accounts with the following {{ branding_name }} organizations hosted by {{ external_host }}:{% endtrans %}
 {% endif %}
 
 
@@ -18,14 +18,14 @@
 
 {% else %}
 {% if corporate_enabled %}
-{{ _("You have requested a list of Zulip accounts for this email address.") }} {{ _("Unfortunately, no Zulip Cloud accounts were found.") }}
+{% trans branding_name=branding_name %}You have requested a list of {{ branding_name }} accounts for this email address.{% endtrans %} {% trans branding_name=branding_name %}Unfortunately, no {{ branding_name }} Cloud accounts were found.{% endtrans %}
 
 {% trans %}You can check for accounts with another email ({{ find_accounts_link }}), or try another way to find your account ({{ help_logging_in_link }}).{% endtrans %}
 
 
 {{ _("If you do not recognize this request, you can safely ignore this email.") }}
 {% else %}
-{{ _("You have requested a list of Zulip accounts for this email address.") }} {% trans%}Unfortunately, no accounts were found in Zulip organizations hosted by {{external_host}}.{% endtrans %}
+{% trans branding_name=branding_name %}You have requested a list of {{ branding_name }} accounts for this email address.{% endtrans %} {% trans branding_name=branding_name %}Unfortunately, no accounts were found in {{ branding_name }} organizations hosted by {{ external_host }}.{% endtrans %}
 
 
 {% trans %}You can check for accounts with another email ({{ find_accounts_link }}), or try another way to find your account ({{ help_logging_in_link }}).{% endtrans %}

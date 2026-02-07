@@ -1,7 +1,7 @@
 {% extends "zerver/portico_error_pages/portico_error_page.html" %}
 
 {% block title %}
-<title>{{ _("Account is deactivated") }} | Zulip</title>
+<title>{{ _("Account is deactivated") }} | {{ branding.name }}</title>
 {% endblock %}
 
 {% block error_page_content %}
@@ -11,7 +11,7 @@
         <h1 class="lead">{{ _("Account is deactivated") }}</h1>
         <p>
             {% trans %}
-            Your Zulip account on <a href="{{ realm_url }}">{{ realm_url }}</a>
+            Your account on <a href="{{ realm_url }}">{{ realm_url }}</a>
             has been deactivated, and you will no longer be able to log in.
             {% endtrans %}
         </p>

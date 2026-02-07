@@ -47,7 +47,7 @@
         {% endif %}
     </p>
     {% endif %}
-    <p class="digest_paragraph">{% trans %}<a href="{{ realm_url }}">Log in</a> to Zulip to catch up.{% endtrans %}</p>
+    <p class="digest_paragraph">{% trans branding_name=branding_name %}<a href="{{ realm_url }}">Log in</a> to {{ branding_name }} to catch up.{% endtrans %}</p>
 {% endblock %}
 
 {% block manage_preferences %}

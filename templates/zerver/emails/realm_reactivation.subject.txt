@@ -1,5 +1,5 @@
 {% if is_demo_organization %}
-{% trans %}Reactivate your Zulip demo organization{% endtrans %}
+{% trans branding_name=branding_name %}Reactivate your {{ branding_name }} demo organization{% endtrans %}
 {% else %}
-{% trans %}Reactivate your Zulip organization{% endtrans %}
+{% trans branding_name=branding_name %}Reactivate your {{ branding_name }} organization{% endtrans %}
 {% endif %}

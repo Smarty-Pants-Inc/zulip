@@ -1,13 +1,13 @@
-{{ _('Welcome to Zulip!') }}
+{% trans branding_name=branding_name %}Welcome to {{ branding_name }}!{% endtrans %}
 
 {% if realm_creation %}
-    {% trans %}Congratulations, you have created a new Zulip organization: {{ realm_name }}.{% endtrans %}
+    {% trans branding_name=branding_name %}Congratulations, you have created a new {{ branding_name }} organization: {{ realm_name }}.{% endtrans %}
 {% else %}
-{% trans %}You've joined the Zulip organization {{ realm_name }}.{% endtrans %}
+{% trans branding_name=branding_name %}You've joined the {{ branding_name }} organization {{ realm_name }}.{% endtrans %}
 {% endif %}
 
 
-{% trans apps_page_link="https://zulip.com/apps/" %}You will use the following info to log into the Zulip web, mobile and desktop apps ({{ apps_page_link}}):{% endtrans %}
+{% trans %}You will use the following info to log into the web, mobile and desktop apps:{% endtrans %}
 
 * {% trans organization_url=realm_url %}Organization URL: {{ organization_url }}{% endtrans %}
 
@@ -22,14 +22,14 @@
 {% endif %}
 
 
-{% trans %}If you are new to Zulip, check out our getting started guide ({{ getting_user_started_link }})!{% endtrans %}
+{% trans branding_name=branding_name %}If you are new to {{ branding_name }}, check out our getting started guide ({{ getting_user_started_link }})!{% endtrans %}
 {% if is_realm_admin %}
-{% trans %} We also have a guide for moving your organization to Zulip ({{ getting_organization_started_link }}).{% endtrans %}
+{% trans branding_name=branding_name %} We also have a guide for moving your organization to {{ branding_name }} ({{ getting_organization_started_link }}).{% endtrans %}
 {% endif %}
 
 
 {% if corporate_enabled %}
     {% trans %}Questions? Contact us at {{ support_email }} — we'd love to help!{% endtrans %}
 {% else %}
-    {% trans %}If you have any questions, please contact this Zulip server's administrators at {{ support_email }}.{% endtrans %}
+    {% trans %}If you have any questions, please contact this server's administrators at {{ support_email }}.{% endtrans %}
 {% endif %}

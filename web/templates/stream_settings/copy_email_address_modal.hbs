@@ -1,9 +1,11 @@
 <div class="copy-email-modal">
     {{> ../dropdown_widget_with_label
       widget_name="sender_channel_email_address"
-      label=(t 'Who should be the sender of the Zulip messages for this email address?')}}
+      label=(t 'Who should be the sender of the {branding_name} messages for this email address?'
+        branding_name=(brand_name))}}
     <p class="question-which-parts">
-        {{t "Which parts of the emails should be included in the Zulip messages?"}}
+        {{t "Which parts of the emails should be included in the {branding_name} messages?"
+          branding_name=(brand_name) }}
     </p>
     {{#each tags}}
         {{#if (eq this.name "prefer-html") }}

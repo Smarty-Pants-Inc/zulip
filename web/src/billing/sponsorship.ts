@@ -2,9 +2,13 @@ import $ from "jquery";
 import assert from "minimalistic-assert";
 import * as z from "zod/mini";
 
+import {page_params} from "../base_page_params.ts";
+import {getBrandName} from "../branding.ts";
 import {the} from "../util.ts";
 
 import * as helpers from "./helpers.ts";
+
+const brandName = getBrandName(page_params);
 
 const is_remotely_hosted = $("#sponsorship-form").attr("data-is-remotely-hosted") === "True";
 
@@ -48,7 +52,7 @@ function validate_data(data: helpers.FormDataObject): boolean {
     assert(data["plan_to_use_zulip"] !== undefined);
     if (data["plan_to_use_zulip"].trim() === "") {
         $("#sponsorship-plan-to-use-zulip-error").text(
-            "Description of how you plan to use Zulip cannot be blank.",
+            `Description of how you plan to use ${brandName} cannot be blank.`,
         );
         hide_submit_loading_indicator();
         found_error = true;

@@ -38,23 +38,22 @@ This email does not include message content because you have chosen to hide mess
 {% endif %}
 
 {% if reply_to_zulip  %}
-{% trans %}Reply to this email directly, or view it in {{ realm_name }} Zulip:{% endtrans %}
+{% trans %}Reply to this email directly, or view it in {{ realm_name }}:{% endtrans %}
 
 {{ narrow_url }}
 {% elif not show_message_content %}
-{% trans %}View or reply in {{ realm_name }} Zulip:{% endtrans %}
+{% trans %}View or reply in {{ realm_name }}:{% endtrans %}
 
 {{ narrow_url }}
 {% else %}
-{% trans %}Reply in {{ realm_name }} Zulip:{% endtrans %}
+{% trans %}Reply in {{ realm_name }}:{% endtrans %}
 
 {{ narrow_url }}
 
 {% trans %}
-Do not reply to this email. This Zulip server is not configured to accept
-incoming emails. Help:
+Do not reply to this email. This server is not configured to accept
+incoming emails.
 {% endtrans %}
-https://zulip.readthedocs.io/en/latest/production/email-gateway.html
 {% endif %}
 
 {% trans %}Manage email preferences:{% endtrans %}

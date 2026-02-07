@@ -1,1 +1,1 @@
-{% trans %}Zulip email changed for {{ realm_name }}{% endtrans %}
+{% trans branding_name=branding_name %}{{ branding_name }} email changed for {{ realm_name }}{% endtrans %}

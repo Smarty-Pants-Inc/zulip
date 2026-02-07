@@ -5,15 +5,15 @@
 {% endblock %}
 
 {% block content %}
-    {% trans organization_name_with_link=macros.link_tag(realm_url, string_id) %}
-    Your organization, {{ organization_name_with_link }}, has been downgraded to the Zulip Cloud
+    {% trans organization_name_with_link=macros.link_tag(realm_url, string_id), branding_name=branding_name %}
+    Your organization, {{ organization_name_with_link }}, has been downgraded to the {{ branding_name }} Cloud
     Free plan because of unpaid invoices. The unpaid invoices have been voided.
     {% endtrans %}
     <br/>
     <br/>
 
-    {% trans upgrade_url=macros.link_tag(upgrade_url) %}
-    To continue on the Zulip Cloud Standard plan, please upgrade again by going to {{ upgrade_url }}.
+    {% trans upgrade_url=macros.link_tag(upgrade_url), branding_name=branding_name %}
+    To continue on the {{ branding_name }} Cloud Standard plan, please upgrade again by going to {{ upgrade_url }}.
     {% endtrans %}
 
     <br/>

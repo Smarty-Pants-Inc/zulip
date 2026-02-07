@@ -1,5 +1,5 @@
 {% if create_realm %}
-{{ _("Create your Zulip organization") }}
+{% trans branding_name=branding_name %}Create your {{ branding_name }} organization{% endtrans %}
 {% else %}
-{{ _("Activate your Zulip account") }}
+{% trans branding_name=branding_name %}Activate your {{ branding_name }} account{% endtrans %}
 {% endif %}

@@ -93,6 +93,7 @@ import * as navigate from "./navigate.ts";
 import * as navigation_views from "./navigation_views.ts";
 import * as onboarding_steps from "./onboarding_steps.ts";
 import * as overlays from "./overlays.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as personal_menu_popover from "./personal_menu_popover.ts";
@@ -777,9 +778,13 @@ export async function initialize_everything(state_data) {
 }
 
 function show_try_zulip_modal() {
+    const brandName = getBrandName(page_params);
     const html_body = render_try_zulip_modal();
     dialog_widget.launch({
-        text_heading: i18n.$t({defaultMessage: "Welcome to the Zulip development community!"}),
+        text_heading: i18n.$t(
+            {defaultMessage: "Welcome to the {brandName} development community!"},
+            {brandName},
+        ),
         html_body,
         html_submit_button: i18n.$t({defaultMessage: "Let's go!"}),
         on_click() {

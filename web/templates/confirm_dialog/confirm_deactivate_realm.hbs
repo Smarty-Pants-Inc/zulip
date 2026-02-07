@@ -20,7 +20,8 @@
         </div>
     </div>
 </form>
-<p>{{t "Are you sure you want to deactivate this organization? All users will lose access to their Zulip accounts." }}</p>
+<p>{{t "Are you sure you want to deactivate this organization? All users will lose access to their {branding_name} accounts."
+  branding_name=(brand_name) }}</p>
 {{else}}
 <p>{{t "Are you sure you want to deactivate this organization? All data will be immediately deleted." }}</p>
 {{/if}}

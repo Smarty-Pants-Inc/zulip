@@ -29,7 +29,7 @@ This email does not include message content because you have chosen to hide mess
 {% endif %}
 {% endif %}
 
-{% trans organization_url=realm_url %}Log in to Zulip to catch up: {{ organization_url }}.{% endtrans %}
+{% trans organization_url=realm_url, branding_name=branding_name %}Log in to {{ branding_name }} to catch up: {{ organization_url }}.{% endtrans %}
 
 --
 {% trans %}Manage email preferences:{% endtrans %}

@@ -4,9 +4,13 @@ import * as banners from "./banners.ts";
 import type {Banner} from "./banners.ts";
 import type {ActionButton} from "./buttons.ts";
 import {$t} from "./i18n.ts";
+import {getBrandName} from "./branding.ts";
+import {page_params} from "./page_params.ts";
 import * as settings_config from "./settings_config.ts";
 import * as settings_data from "./settings_data.ts";
 import {realm} from "./state_data.ts";
+
+const brandName = getBrandName(page_params);
 
 export function set_up_upgrade_banners(): void {
     const has_billing_access = settings_data.user_has_billing_access();
@@ -45,7 +49,7 @@ export function set_up_upgrade_banners(): void {
 
     const upgrade_banner: Banner = {
         intent: banner_intent,
-        label: $t({defaultMessage: "Available on Zulip Cloud Standard."}),
+        label: $t({defaultMessage: "Available on {brandName} Cloud Standard."}, {brandName}),
         buttons: upgrade_buttons,
         custom_classes: "organization-upgrade-banner",
         close_button: false,

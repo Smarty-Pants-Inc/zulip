@@ -5,8 +5,8 @@
 {% endblock %}
 
 {% block content %}
-{% trans %}
-Your Zulip account on <a href="{{ realm_url }}">{{ realm_url }}</a> has been deactivated, and you will no longer be able to log in.
+{% trans branding_name=branding_name %}
+Your {{ branding_name }} account on <a href="{{ realm_url }}">{{ realm_url }}</a> has been deactivated, and you will no longer be able to log in.
 {% endtrans %}
 
 <br/><br/>

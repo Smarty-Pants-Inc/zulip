@@ -1,6 +1,7 @@
 import Handlebars from "handlebars/runtime.js";
 
 import {page_params} from "./base_page_params.ts";
+import {getBrandName} from "./branding.ts";
 import type {
     GroupGroupSettingName,
     RealmGroupSettingName,
@@ -17,6 +18,8 @@ import type {
     UserSettings,
 } from "./user_settings.ts";
 import * as util from "./util.ts";
+
+const brandName = getBrandName(page_params);
 
 /*
     This file contains translations between the integer values used in
@@ -681,9 +684,13 @@ export const notification_settings_labels = {
     enable_login_emails: $t({
         defaultMessage: "Send email notifications for new logins to my account",
     }),
-    enable_marketing_emails: $t({
-        defaultMessage: "Send me Zulip's low-traffic newsletter (a few emails a year)",
-    }),
+    enable_marketing_emails: $t(
+        {
+            defaultMessage:
+                "Send me {brandName}'s low-traffic newsletter (a few emails a year)",
+        },
+        {brandName},
+    ),
     message_content_in_email_notifications: $t({
         defaultMessage: "Include message content in message notification emails",
     }),
@@ -754,9 +761,13 @@ export const all_group_setting_labels = {
             defaultMessage: "Who can view all other users in the organization",
         }),
         can_summarize_topics_group: $t({defaultMessage: "Who can use AI summaries"}),
-        can_create_write_only_bots_group: $t({
-            defaultMessage: "Who can create bots that send messages into Zulip",
-        }),
+        can_create_write_only_bots_group: $t(
+            {
+                defaultMessage:
+                    "Who can create bots that send messages into {brandName}",
+            },
+            {brandName},
+        ),
         can_create_bots_group: $t({defaultMessage: "Who can create any bot"}),
         can_add_custom_emoji_group: $t({defaultMessage: "Who can add custom emoji"}),
         can_mention_many_users_group: $t({

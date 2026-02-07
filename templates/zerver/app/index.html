@@ -3,7 +3,7 @@
 {# The app itself. #}
 {# Includes some other templates as tabs. #}
 
-{% set PAGE_TITLE = _("Public view of {org_name} | Zulip team chat").format(org_name=realm_name) %}
+{% set PAGE_TITLE = _("Public view of {org_name} | {product_name}").format(org_name=realm_name, product_name=branding.name) %}
 {% set PAGE_DESCRIPTION = _("Browse the publicly accessible channels in {org_name} without logging in.").format(org_name=realm_name)  %}
 
 {% block meta_viewport %}
@@ -121,12 +121,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1943053 -->
             <svg class="app-loading-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 774 774"><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#50adff"/><stop offset="1" stop-color="#7877fc"/></linearGradient><circle cx="387" cy="387" r="370" fill="url(#a)"/><path d="M567.32 527.81c0 33.07-24.26 60.11-53.91 60.11H260.59c-29.65 0-53.91-27.04-53.91-60.11 0-20.24 9.10-38.25 22.95-49.14l134.50-120.12c2.50-2.14 5.75 1.31 3.94 4.20l-49.34 98.79c-1.38 2.76.41 6.17 3.25 6.17h191.42c29.65 0 53.91 27.04 53.91 60.11zm0-281.75c0 20.24-9.10 38.25-22.95 49.14l-134.50 120.12c-2.50 2.14-5.75-1.31-3.94-4.20l49.34-98.79c1.38-2.76-.41-6.17-3.25-6.17H260.59c-29.65 0-53.91-27.04-53.91-60.11s24.26-60.11 53.91-60.11h252.81c29.65 0 53.91 27.04 53.91 60.11z" fill="#fff"/></svg>
         </div>
         <div id="app-loading-unsupported-browser" hidden>
-            <p>{% trans %}Because you're using an unsupported or very old browser, Zulip may not load.{% endtrans %}</p>
+            <p>{% trans product_name=branding.name %}Because you're using an unsupported or very old browser, {{ product_name }} may not load.{% endtrans %}</p>
         </div>
         <div id="app-loading-unsupported-desktop-app" hidden>
             <p>
-                {% trans %}Because you're using a very old version of the desktop app, Zulip may not load.
-                <a href="https://zulip.com/apps/" target="_blank" rel="noopener noreferrer">Download the latest version.</a>
+                {% trans product_name=branding.name apps_url=apps_page_url %}Because you're using a very old version of the desktop app, {{ product_name }} may not load.
+                <a href="{{ apps_url }}" target="_blank" rel="noopener noreferrer">Download the latest version.</a>
                 {% endtrans %}
             </p>
         </div>
@@ -135,7 +135,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1943053 -->
         <p>{% trans %}If this message does not go away, try <a class="reload-lnk">reloading</a> the page.{% endtrans %}</p>
     </div>
     <div id="app-loading-error">
-        <p>{% trans %}Error loading Zulip. Try <a class="reload-lnk">reloading</a> the page.{% endtrans %}</p>
+        <p>{% trans product_name=branding.name %}Error loading {{ product_name }}. Try <a class="reload-lnk">reloading</a> the page.{% endtrans %}</p>
     </div>
     <script nonce="{{ csp_nonce }}">
         document.addEventListener('DOMContentLoaded', function () {

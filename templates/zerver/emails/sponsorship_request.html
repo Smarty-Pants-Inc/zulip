@@ -4,7 +4,7 @@
 <br />
 
 {% if is_cloud_organization %}
-<b>Zulip Cloud</b>
+<b>{{ branding_name }} Cloud</b>
 {% else %}
 <b>Self-hosted</b>
 {% endif %}
@@ -29,7 +29,7 @@
 
 <br /><br />
 
-<b>How do you plan to use Zulip?</b>
+<b>{% trans branding_name=branding_name %}How do you plan to use {{ branding_name }}?{% endtrans %}</b>
 <br />
 {{ plan_to_use_zulip }}
 

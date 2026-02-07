@@ -3,10 +3,10 @@
       and mobile apps is translated, including administrative UI and error messages." }}
 </p>
 <p>
-    {{#tr}}
-        Zulip's translations are contributed by our amazing community of volunteer
+    {{#tr branding_name=(brand_name)}}
+        Translations for {branding_name} are contributed by our amazing community of volunteer
         translators. If you'd like to help, see the
-        <z-link>Zulip translation guidelines</z-link>.
+        <z-link>translation guidelines</z-link>.
         {{#*inline "z-link"}}<a target="_blank" rel="noopener noreferrer" href="https://zulip.readthedocs.io/en/latest/translating/translating.html">{{> @partial-block}}</a>{{/inline}}
     {{/tr}}
 </p>

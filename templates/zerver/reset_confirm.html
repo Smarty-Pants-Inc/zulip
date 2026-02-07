@@ -2,7 +2,7 @@
 {% set entrypoint = "register" %}
 
 {% block title %}
-<title>{{ _("Set a new password") }} | Zulip</title>
+<title>{{ _("Set a new password") }} | {{ branding.name }}</title>
 {% endblock %}
 
 {% block portico_content %}
@@ -61,7 +61,7 @@
                         <input id="id_enable_marketing_emails_demo_creator" type="checkbox" name="enable_marketing_emails"
                           checked="checked" />
                         <span class="rendered-checkbox"></span>
-                        {% trans %}Subscribe me to Zulip's low-traffic newsletter (a few emails a year).{% endtrans %}
+                        {% trans %}Subscribe me to the low-traffic newsletter (a few emails a year).{% endtrans %}
                     </label>
                 </div>
                 {% endif %}

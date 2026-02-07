@@ -1,7 +1,7 @@
 {% extends "zerver/portico.html" %}
 
 {% block title %}
-<title>{{ _("Email settings updated") }} | Zulip</title>
+<title>{{ _("Email settings updated") }} | {{ branding.name }}</title>
 {% endblock %}
 
 {% block portico_content %}
@@ -16,8 +16,8 @@
 
             <div class="white-box">
                 <p>
-                    {% trans %}
-                    You've successfully unsubscribed from Zulip {{ subscription_type }} emails for
+                    {% trans product_name=branding.name %}
+                    You've successfully unsubscribed from {{ product_name }} {{ subscription_type }} emails for
                     <a href="{{ realm_url }}">{{ realm_name }}</a>.
                     {% endtrans %}
                 </p>

@@ -8,12 +8,15 @@ import {$t, $t_html} from "./i18n.ts";
 import * as message_lists from "./message_lists.ts";
 import type {NarrowBannerData, SearchData} from "./narrow_error.ts";
 import {narrow_error} from "./narrow_error.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as spectators from "./spectators.ts";
 import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as util from "./util.ts";
+
+const brandName = getBrandName(page_params);
 
 const SPECTATOR_STREAM_NARROW_BANNER = {
     title: "",
@@ -386,10 +389,13 @@ export function pick_empty_narrow_banner(current_filter: Filter): NarrowBannerDa
                         title: $t({
                             defaultMessage: "You haven't sent yourself any notes yet!",
                         }),
-                        html: $t_html({
-                            defaultMessage:
-                                "Use this space for personal notes, or to test out Zulip features.",
-                        }),
+                        html: $t_html(
+                            {
+                                defaultMessage:
+                                    "Use this space for personal notes, or to test out {brandName} features.",
+                            },
+                            {brandName},
+                        ),
                     };
                 }
                 // If the recipient is deactivated, we cannot start the conversation.

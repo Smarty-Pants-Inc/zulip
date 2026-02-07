@@ -15,6 +15,7 @@ import * as feedback_widget from "./feedback_widget.ts";
 import {$t} from "./i18n.ts";
 import type {LocalStorage} from "./localstorage.ts";
 import {localstorage} from "./localstorage.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as popover_menus from "./popover_menus.ts";
@@ -25,6 +26,8 @@ import * as unread from "./unread.ts";
 import * as unread_ops from "./unread_ops.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+
+const brandName = getBrandName(page_params);
 
 function open_navbar_banner_and_resize(banner: AlertBanner): void {
     banners.open(banner, $("#navbar_alerts_wrapper"));
@@ -181,10 +184,13 @@ export function should_offer_to_update_timezone(): boolean {
 const DESKTOP_NOTIFICATIONS_BANNER: AlertBanner = {
     process: "desktop-notifications",
     intent: "brand",
-    label: $t({
-        defaultMessage:
-            "Zulip needs your permission to enable desktop notifications for important messages.",
-    }),
+    label: $t(
+        {
+            defaultMessage:
+                "{brandName} needs your permission to enable desktop notifications for important messages.",
+        },
+        {brandName},
+    ),
     buttons: [
         {
             variant: "solid",
@@ -209,10 +215,13 @@ const DESKTOP_NOTIFICATIONS_BANNER: AlertBanner = {
 const CONFIGURE_OUTGOING_MAIL_BANNER: AlertBanner = {
     process: "configure-outgoing-mail",
     intent: "warning",
-    label: $t({
-        defaultMessage:
-            "Zulip needs to send email to confirm users' addresses and send notifications.",
-    }),
+    label: $t(
+        {
+            defaultMessage:
+                "{brandName} needs to send email to confirm users' addresses and send notifications.",
+        },
+        {brandName},
+    ),
     buttons: [
         {
             variant: "subtle",
@@ -227,10 +236,13 @@ const CONFIGURE_OUTGOING_MAIL_BANNER: AlertBanner = {
 const INSECURE_DESKTOP_APP_BANNER: AlertBanner = {
     process: "insecure-desktop-app",
     intent: "warning",
-    label: $t({
-        defaultMessage:
-            "Zulip Desktop is not updating automatically. Please upgrade for security updates and other improvements.",
-    }),
+    label: $t(
+        {
+            defaultMessage:
+                "{brandName} Desktop is not updating automatically. Please upgrade for security updates and other improvements.",
+        },
+        {brandName},
+    ),
     buttons: [
         {
             variant: "subtle",
@@ -245,10 +257,13 @@ const INSECURE_DESKTOP_APP_BANNER: AlertBanner = {
 const UNSUPPORTED_BROWSER_BANNER: AlertBanner = {
     process: "unsupported-browser",
     intent: "warning",
-    label: $t({
-        defaultMessage:
-            "Because you're using an unsupported or very old browser, Zulip may not work as expected.",
-    }),
+    label: $t(
+        {
+            defaultMessage:
+                "Because you're using an unsupported or very old browser, {brandName} may not work as expected.",
+        },
+        {brandName},
+    ),
     buttons: [
         {
             variant: "text",
@@ -298,9 +313,13 @@ const ORGANIZATION_PROFILE_INCOMPLETE_BANNER: AlertBanner = {
 const SERVER_NEEDS_UPGRADE_BANNER: AlertBanner = {
     process: "server-needs-upgrade",
     intent: "danger",
-    label: $t({
-        defaultMessage: "This Zulip server is running an old version and should be upgraded.",
-    }),
+    label: $t(
+        {
+            defaultMessage:
+                "This {brandName} server is running an old version and should be upgraded.",
+        },
+        {brandName},
+    ),
     buttons: [
         {
             variant: "subtle",
@@ -408,9 +427,10 @@ const time_zone_update_offer_banner = (): AlertBanner => {
         label: $t(
             {
                 defaultMessage:
-                    "Your computer's time zone differs from your Zulip profile. Update your time zone to {browser_time_zone}?",
+                    "Your computer's time zone differs from your {brandName} profile. Update your time zone to {browser_time_zone}?",
             },
             {
+                brandName,
                 browser_time_zone,
             },
         ),

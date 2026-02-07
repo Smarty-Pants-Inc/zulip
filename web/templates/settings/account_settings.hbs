@@ -30,7 +30,7 @@
                     <p>
                         {{#tr}}
                             Add your email to <z-link-invite-users-help>invite other users</z-link-invite-users-help>
-                            or <z-link-convert-demo-organization-help>convert to a permanent Zulip organization</z-link-convert-demo-organization-help>.
+                            or <z-link-convert-demo-organization-help>convert to a permanent organization</z-link-convert-demo-organization-help>.
                             {{#*inline "z-link-invite-users-help"}}<a href="/help/invite-new-users" target="_blank" rel="noopener noreferrer">{{> @partial-block}}</a>{{/inline}}
                             {{#*inline "z-link-convert-demo-organization-help"}}<a href="/help/demo-organizations#convert-a-demo-organization-to-a-permanent-organization" target="_blank" rel="noopener noreferrer">{{> @partial-block}}</a>{{/inline}}
                         {{/tr}}
@@ -112,13 +112,13 @@
 
             <div class="input-group">
                 <p class="api-key-note">
-                    {{#tr}}
-                    An API key can be used to programmatically access a Zulip account.
+                    {{#tr branding_name=(brand_name)}}
+                    An API key can be used to programmatically access a {branding_name} account.
                     Anyone with access to your API key has the ability to read your messages, send
-                    messages on your behalf, and otherwise impersonate you on Zulip, so you should
+                    messages on your behalf, and otherwise impersonate you on {branding_name}, so you should
                     guard your API key as carefully as you guard your password. <br />
                     We recommend creating bots and using the bots' accounts and API keys to access
-                    the Zulip API, unless the task requires access to your account.
+                    the {branding_name} API, unless the task requires access to your account.
                     {{/tr}}
                 </p>
                 <div id="api_key_button_container" class="inline-block {{#unless user_has_email_set}}disabled_setting_tooltip{{/unless}}">

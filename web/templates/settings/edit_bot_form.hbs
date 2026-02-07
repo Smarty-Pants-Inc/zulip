@@ -79,7 +79,7 @@
     {{#if (and is_active is_bot_owner_current_user)}}
     <div id="zuliprc-section" class="input-group">
         <div class="zuliprc-container">
-            <label class="modal-field-label">{{t "Zuliprc configuration" }} {{> ../help_link_widget link="/api/configuring-python-bindings" }}</label>
+            <label class="modal-field-label">{{t "API configuration" }} {{> ../help_link_widget link="/api/configuring-python-bindings" }}</label>
             <div class="buttons-container">
                 <span>
                     <a type="submit" download="{{zuliprc}}" data-email="{{email}}" data-user-id="{{user_id}}" class="hidden-zuliprc-download" hidden></a>
@@ -87,7 +87,7 @@
                       custom_classes="download-bot-zuliprc tippy-zulip-delayed-tooltip"
                       icon="download"
                       intent="brand"
-                      data-tippy-content=(t 'Download zuliprc')
+                      data-tippy-content=(t 'Download configuration file')
                       }}
                 </span>
                 {{> ../components/icon_button
@@ -95,7 +95,7 @@
                   intent="success"
                   id="copy-zuliprc-config"
                   custom_classes="copy-zuliprc tippy-zulip-delayed-tooltip"
-                  data-tippy-content=(t "Copy zuliprc")
+                  data-tippy-content=(t "Copy configuration")
                   }}
             </div>
         </div>

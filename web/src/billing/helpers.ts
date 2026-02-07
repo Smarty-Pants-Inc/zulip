@@ -1,8 +1,12 @@
 import $ from "jquery";
 import * as z from "zod/mini";
 
+import {page_params} from "../base_page_params.ts";
+import {getBrandName} from "../branding.ts";
 import * as loading from "../loading.ts";
 import * as util from "../util.ts";
+
+const brandName = getBrandName(page_params);
 
 export type FormDataObject = Record<string, string>;
 
@@ -24,13 +28,13 @@ export const stripe_session_url_schema = z.object({
 });
 
 const cloud_discount_details: DiscountDetails = {
-    opensource: "Zulip Cloud Standard is free for open-source projects.",
-    research: "Zulip Cloud Standard is free for academic research.",
-    nonprofit: "Zulip Cloud Standard is discounted 85%+ for registered non-profits.",
-    event: "Zulip Cloud Standard is free for academic conferences and most non-profit events.",
-    education: "Zulip Cloud Standard is discounted 85% for education.",
+    opensource: `${brandName} Cloud Standard is free for open-source projects.`,
+    research: `${brandName} Cloud Standard is free for academic research.`,
+    nonprofit: `${brandName} Cloud Standard is discounted 85%+ for registered non-profits.`,
+    event: `${brandName} Cloud Standard is free for academic conferences and most non-profit events.`,
+    education: `${brandName} Cloud Standard is discounted 85% for education.`,
     education_nonprofit:
-        "Zulip Cloud Standard is discounted 90% for education non-profits with online purchase.",
+        `${brandName} Cloud Standard is discounted 90% for education non-profits with online purchase.`,
 };
 
 const remote_discount_details: DiscountDetails = {
@@ -142,7 +146,7 @@ export function update_discount_details(
 ): void {
     let discount_notice = is_remotely_hosted
         ? "Your organization may be eligible for a free Community plan, or a discounted Business plan."
-        : "Your organization may be eligible for a discount on Zulip Cloud Standard. Organizations whose members are not employees are generally eligible.";
+        : `Your organization may be eligible for a discount on ${brandName} Cloud Standard. Organizations whose members are not employees are generally eligible.`;
 
     try {
         const parsed_organization_type = organization_type_schema.parse(organization_type);

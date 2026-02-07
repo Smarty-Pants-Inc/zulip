@@ -7,7 +7,7 @@
 {% block content %}
     {% if create_realm %}
         <p>
-            {{ _("You have requested a new Zulip organization:") }}
+            {% trans branding_name=branding_name %}You have requested a new {{ branding_name }} organization:{% endtrans %}
         </p>
         <ul>
             <li>{% trans %}Organization URL: {{ organization_url }}{% endtrans %}</li>
@@ -15,7 +15,7 @@
         </ul>
     {% else %}
         <p>
-            {{ _("You recently signed up for Zulip. Awesome!") }}
+            {% trans branding_name=branding_name %}You recently signed up for {{ branding_name }}. Awesome!{% endtrans %}
         </p>
     {% endif %}
     <p>

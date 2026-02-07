@@ -8,6 +8,8 @@ import * as channel from "./channel.ts";
 import * as compose_recipient from "./compose_recipient.ts";
 import * as dialog_widget from "./dialog_widget.ts";
 import {$t, $t_html} from "./i18n.ts";
+import {getBrandName} from "./branding.ts";
+import {page_params} from "./page_params.ts";
 import type * as message_view from "./message_view.ts";
 import * as people from "./people.ts";
 import type {StateData, onboarding_step_schema} from "./state_data.ts";
@@ -18,6 +20,8 @@ export type OnboardingStep = z.output<typeof onboarding_step_schema>;
 export const ONE_TIME_NOTICES_TO_DISPLAY = new Set<string>();
 
 const MAX_RETRIES = 5;
+
+const brandName = getBrandName(page_params);
 
 export function post_onboarding_step_as_read(
     onboarding_step_name: string,
@@ -102,12 +106,18 @@ function show_navigation_tour_video(navigation_tour_video_url: string | null): v
         });
         let watch_later_clicked = false;
         dialog_widget.launch({
-            html_heading: $t_html({defaultMessage: "Welcome to Zulip!"}),
+            html_heading: $t_html(
+                {defaultMessage: "Welcome to {brandName}!"},
+                {brandName},
+            ),
             html_body,
             on_click() {
                 // Do nothing
             },
-            html_submit_button: $t_html({defaultMessage: "Skip video — I'm familiar with Zulip"}),
+            html_submit_button: $t_html(
+                {defaultMessage: "Skip video — I'm familiar with {brandName}"},
+                {brandName},
+            ),
             html_exit_button: $t_html({defaultMessage: "Watch later"}),
             close_on_submit: true,
             id: "navigation-tour-video-modal",

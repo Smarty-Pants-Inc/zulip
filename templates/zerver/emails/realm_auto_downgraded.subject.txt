@@ -1,1 +1,1 @@
-{{ string_id }}: Your organization has been downgraded to Zulip Cloud Free
+{% trans branding_name=branding_name %}{{ string_id }}: Your organization has been downgraded to {{ branding_name }} Cloud Free{% endtrans %}

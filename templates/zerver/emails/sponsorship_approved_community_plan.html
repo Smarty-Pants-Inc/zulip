@@ -6,10 +6,10 @@
 
 {% block content %}
 <p>
-    {% trans %}Your request for Zulip sponsorship has been approved! Your organization has been upgraded to the <a href="{{ plans_link }}">Zulip Community plan</a>.{% endtrans %}
+    {% trans branding_name=branding_name %}Your request for {{ branding_name }} sponsorship has been approved! Your organization has been upgraded to the <a href="{{ plans_link }}">{{ branding_name }} Community plan</a>.{% endtrans %}
 </p>
 <p>
-    {% trans %}If you could <a href="{{ link_to_zulip }}">list Zulip as a sponsor on your website</a>, we would really appreciate it!{% endtrans %}
+    {% trans branding_name=branding_name %}If you could <a href="{{ link_to_zulip }}">list {{ branding_name }} as a sponsor on your website</a>, we would really appreciate it!{% endtrans %}
 </p>
 
 {% endblock %}

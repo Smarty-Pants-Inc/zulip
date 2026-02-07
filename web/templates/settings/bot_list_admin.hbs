@@ -21,7 +21,8 @@
     </div>
     <div id="admin-your-bots-list" class="bot-settings-section user-or-bot-settings-section" data-bot-settings-section="your-bots">
         <div id="botserverrc-text-container" class="config-download-text">
-            <span>{{t 'Download config of all active outgoing webhook bots in Zulip Botserver format.' }}</span>
+            <span>{{t "Download config of all active outgoing webhook bots in {branding_name} Botserver format."
+              branding_name=(brand_name) }}</span>
             <a type="submit" download="botserverrc" id= "hidden-botserverrc-download" hidden></a>
             {{> ../components/icon_button
               id= "download-botserverrc-file"

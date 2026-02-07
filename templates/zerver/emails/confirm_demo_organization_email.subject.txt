@@ -1,1 +1,1 @@
-{{ _("Verify your email address for your Zulip demo organization") }}
+{% trans branding_name=branding_name %}Verify your email address for your {{ branding_name }} demo organization{% endtrans %}

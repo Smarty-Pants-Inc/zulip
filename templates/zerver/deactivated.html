@@ -1,7 +1,7 @@
 {% extends "zerver/portico_signup.html" %}
 
 {% block title %}
-<title>{{ _("Deactivated organization") }} | Zulip</title>
+<title>{{ _("Deactivated organization") }} | {{ branding.name }}</title>
 {% endblock %}
 
 {% block customhead %}
@@ -38,18 +38,18 @@
                         {{ _("This organization has been deactivated, and all organization data has been deleted.") }}
                         {% if corporate_enabled %}
                             {% trans %}
-                            You can <a href="mailto:{{ support_email }}">contact Zulip support</a> to inquire about reusing this URL for a new organization.
+                            You can <a href="mailto:{{ support_email }}">contact support</a> to inquire about reusing this URL for a new organization.
                             {% endtrans %}
                         {% else %}
                             {% trans %}
-                            You can <a href="mailto:{{ support_email }}">contact this Zulip server's administrators</a> to inquire about reusing this URL for a new organization.
+                            You can <a href="mailto:{{ support_email }}">contact this server's administrators</a> to inquire about reusing this URL for a new organization.
                             {% endtrans %}
                         {% endif %}
                     {% else %}
                         {{ _("This organization has been deactivated.") }}
                         {% if corporate_enabled %}
                             {% trans %}
-                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact Zulip support</a> to reactivate it.
+                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact support</a> to reactivate it.
                             {% endtrans %}
                             <br /><br />
                             {% trans %}
@@ -57,7 +57,7 @@
                             {% endtrans %}
                         {% else %}
                             {% trans %}
-                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this Zulip server's administrators</a> to reactivate it.
+                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this server's administrators</a> to reactivate it.
                             {% endtrans %}
                         {% endif %}
                     {% endif %}

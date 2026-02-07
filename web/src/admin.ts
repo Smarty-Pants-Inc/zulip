@@ -8,6 +8,7 @@ import * as bot_data from "./bot_data.ts";
 import * as demo_organizations_ui from "./demo_organizations_ui.ts";
 import {$t, language_list} from "./i18n.ts";
 import * as information_density from "./information_density.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import {postprocess_content} from "./postprocess_content.ts";
@@ -28,21 +29,33 @@ import {current_user, realm} from "./state_data.ts";
 import {the} from "./util.ts";
 import * as util from "./util.ts";
 
+const brandName = getBrandName(page_params);
+
 const admin_settings_label = {
     // Organization profile
-    realm_want_advertise_in_communities_directory: $t({
-        defaultMessage: "Advertise organization in the Zulip communities directory",
-    }),
+    realm_want_advertise_in_communities_directory: $t(
+        {
+            defaultMessage:
+                "Advertise organization in the {brandName} communities directory",
+        },
+        {brandName},
+    ),
     // Organization settings
     realm_new_stream_announcements_stream: $t({defaultMessage: "New channel announcements"}),
     realm_signup_announcements_stream: $t({defaultMessage: "New user announcements"}),
-    realm_zulip_update_announcements_stream: $t({defaultMessage: "Zulip update announcements"}),
+    realm_zulip_update_announcements_stream: $t(
+        {defaultMessage: "{brandName} update announcements"},
+        {brandName},
+    ),
     realm_moderation_request_channel: $t({defaultMessage: "Moderation requests"}),
     realm_inline_image_preview: $t({
         defaultMessage: "Show previews of uploaded and linked images and videos",
     }),
     realm_inline_url_embed_preview: $t({defaultMessage: "Show previews of linked websites"}),
-    realm_send_welcome_emails: $t({defaultMessage: "Send emails introducing Zulip to new users"}),
+    realm_send_welcome_emails: $t(
+        {defaultMessage: "Send emails introducing {brandName} to new users"},
+        {brandName},
+    ),
     realm_require_e2ee_push_notifications: $t({
         defaultMessage: "Require end-to-end encryption for push notification content",
     }),
@@ -327,13 +340,18 @@ export function build_page(): void {
 
         const opts: {content?: string} = {};
         if (settings_data.user_has_billing_access()) {
-            opts.content = $t({
-                defaultMessage: "This feature is available on Zulip Cloud Plus. Upgrade to access.",
-            });
+            opts.content = $t(
+                {
+                    defaultMessage:
+                        "This feature is available on {brandName} Cloud Plus. Upgrade to access.",
+                },
+                {brandName},
+            );
         } else {
-            opts.content = $t({
-                defaultMessage: "This feature is available on Zulip Cloud Plus.",
-            });
+            opts.content = $t(
+                {defaultMessage: "This feature is available on {brandName} Cloud Plus."},
+                {brandName},
+            );
         }
 
         tippy.default(the($("#realm_can_access_all_users_group_widget_container")), opts);

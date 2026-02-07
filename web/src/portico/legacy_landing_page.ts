@@ -3,6 +3,7 @@ import assert from "minimalistic-assert";
 import * as z from "zod/mini";
 
 import {page_params} from "../base_page_params.ts";
+import {getBrandName} from "../branding.ts";
 
 import type {UserOS} from "./tabbed-instructions.ts";
 import {detect_user_os} from "./tabbed-instructions.ts";
@@ -55,11 +56,15 @@ export function path_parts(): string[] {
 }
 
 const apps_events = function (): void {
+    const brandName = getBrandName(page_params);
+    const desktop_app_description = `The ${brandName} desktop app comes with native <a class='apps-page-link' href='/help/desktop-notifications'>desktop notifications</a>, support for multiple ${brandName} accounts, and a dedicated tray icon.`;
+    const android_app_description = `${brandName}'s native Android app makes it easy to keep up while on the go, with fully customizable <a class='apps-page-link' href='/help/mobile-notifications'>mobile notifications</a>.`;
+    const ios_app_description = `${brandName}'s native iOS app makes it easy to keep up while on the go, with fully customizable <a class='apps-page-link' href='/help/mobile-notifications'>mobile notifications</a>.`;
+
     const info: Record<UserOS, VersionInfo> = {
         windows: {
             alt: "Windows",
-            description:
-                "The Zulip desktop app comes with native <a class='apps-page-link' href='/help/desktop-notifications'>desktop notifications</a>, support for multiple Zulip accounts, and a dedicated tray icon.",
+            description: desktop_app_description,
             download_link: "/apps/download/windows",
             show_instructions: true,
             install_guide: "/help/desktop-app-install-guide",
@@ -69,8 +74,7 @@ const apps_events = function (): void {
         },
         mac: {
             alt: "macOS",
-            description:
-                "The Zulip desktop app comes with native <a class='apps-page-link' href='/help/desktop-notifications'>desktop notifications</a>, support for multiple Zulip accounts, and a dedicated tray icon.",
+            description: desktop_app_description,
             download_link: "/apps/download/mac-arm64",
             mac_intel_link: "/apps/download/mac-intel",
             show_instructions: true,
@@ -81,8 +85,7 @@ const apps_events = function (): void {
         },
         android: {
             alt: "Android",
-            description:
-                "Zulip's native Android app makes it easy to keep up while on the go, with fully customizable <a class='apps-page-link' href='/help/mobile-notifications'>mobile notifications</a>.",
+            description: android_app_description,
             show_instructions: false,
             play_store_link: "https://play.google.com/store/apps/details?id=com.zulipmobile",
             download_link: "https://github.com/zulip/zulip-flutter/releases/latest",
@@ -91,16 +94,14 @@ const apps_events = function (): void {
         },
         ios: {
             alt: "iOS",
-            description:
-                "Zulip's native iOS app makes it easy to keep up while on the go, with fully customizable <a class='apps-page-link' href='/help/mobile-notifications'>mobile notifications</a>.",
+            description: ios_app_description,
             show_instructions: false,
             app_store_link: "https://itunes.apple.com/us/app/zulip/id1203036395",
             app_type: "mobile",
         },
         linux: {
             alt: "Linux",
-            description:
-                "The Zulip desktop app comes with native <a class='apps-page-link' href='/help/desktop-notifications'>desktop notifications</a>, support for multiple Zulip accounts, and a dedicated tray icon.",
+            description: desktop_app_description,
             download_link: "/apps/download/linux",
             show_instructions: true,
             install_guide: "/help/desktop-app-install-guide",

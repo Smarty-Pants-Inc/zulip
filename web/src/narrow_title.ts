@@ -7,10 +7,14 @@ import {$t} from "./i18n.ts";
 import * as inbox_util from "./inbox_util.ts";
 import * as people from "./people.ts";
 import * as recent_view_util from "./recent_view_util.ts";
+import {getBrandName} from "./branding.ts";
+import {page_params} from "./page_params.ts";
 import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as unread from "./unread.ts";
 import type {FullUnreadCountsData} from "./unread.ts";
+
+const brandName = getBrandName(page_params);
 
 export let unread_count = 0;
 let pm_count = 0;
@@ -75,7 +79,7 @@ export function redraw_title(): void {
         " - " +
         realm.realm_name +
         " - " +
-        "Zulip";
+        brandName;
 
     document.title = new_title;
 }

@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<p>{{ _("We noticed a recent login for the following Zulip account.") }}</p>
+<p>{% trans branding_name=branding_name %}We noticed a recent login for the following {{ branding_name }} account.{% endtrans %}</p>
 <ul>
     <li>
         {% trans organization_link=macros.link_tag(realm_url) %}Organization: {{ organization_link }}{% endtrans %}
@@ -36,7 +36,7 @@
 
 <p>
     {{ _("Thanks,") }}<br />
-    {{ _("Zulip Security") }}
+    {% trans branding_name=branding_name %}{{ branding_name }} Security{% endtrans %}
 </p>
 {% endblock %}
 

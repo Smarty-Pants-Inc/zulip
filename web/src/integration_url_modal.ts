@@ -15,6 +15,8 @@ import * as dropdown_widget from "./dropdown_widget.ts";
 import type {DropdownWidget, Option} from "./dropdown_widget.ts";
 import {$t, $t_html} from "./i18n.ts";
 import * as branch_pill from "./integration_branch_pill.ts";
+import {getBrandName} from "./branding.ts";
+import {page_params} from "./page_params.ts";
 import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as util from "./util.ts";
@@ -40,6 +42,8 @@ const url_option_schema = z.object({
 
 const url_options_schema = z.array(url_option_schema);
 
+const brandName = getBrandName(page_params);
+
 const PresetUrlOption = {
     BRANCHES: "branches",
     CHANNEL_MAPPING: "mapping",
@@ -54,7 +58,7 @@ export function show_generate_integration_url_modal(api_key: string): void {
         is_direct_message: true,
     };
     const map_channels_option: Option = {
-        name: $t_html({defaultMessage: "Matching Zulip channel"}),
+        name: $t_html({defaultMessage: "Matching {brandName} channel"}, {brandName}),
         unique_id: -2,
     };
     const html_body = render_generate_integration_url_modal({

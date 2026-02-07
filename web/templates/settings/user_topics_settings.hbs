@@ -1,7 +1,7 @@
 <div id="user-topic-settings" class="settings-section" data-name="topics">
     <p>
-        {{#tr}}
-            Zulip lets you follow topics you are interested in, and mute topics you want to ignore.
+        {{#tr branding_name=(brand_name)}}
+            {branding_name} lets you follow topics you are interested in, and mute topics you want to ignore.
             You can also <z-automatically-follow>automatically follow</z-automatically-follow>
             topics you start or participate in, and topics where you're mentioned.
             {{#*inline "z-automatically-follow"}}<a href="/help/follow-a-topic#automatically-follow-topics" target="_blank" rel="noopener noreferrer">{{> @partial-block}}</a>{{/inline}}

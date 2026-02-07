@@ -11,6 +11,7 @@ import * as message_delete from "./message_delete.ts";
 import * as message_edit from "./message_edit.ts";
 import * as message_lists from "./message_lists.ts";
 import * as narrow_state from "./narrow_state.ts";
+import {getBrandName} from "./branding.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
 import * as resolved_topic from "./resolved_topic.ts";
@@ -28,6 +29,8 @@ import type {UserStatusEmojiInfo} from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+
+const brandName = getBrandName(page_params);
 
 type ActionPopoverContext = {
     message_id: number;
@@ -408,7 +411,7 @@ export function get_gear_menu_content_context(): GearMenuContext {
         is_education_org:
             realm.realm_org_type === settings_config.all_org_type_values.education_nonprofit.code ||
             realm.realm_org_type === settings_config.all_org_type_values.education.code,
-        standard_plan_name: "Zulip Cloud Standard",
+        standard_plan_name: `${brandName} Cloud Standard`,
         server_needs_upgrade: realm.server_needs_upgrade,
         version_display_string: gear_menu_util.version_display_string(),
         apps_page_url: page_params.apps_page_url,

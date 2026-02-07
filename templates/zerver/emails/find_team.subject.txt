@@ -1,5 +1,5 @@
 {% if account_found %}
-    {{ _("Your Zulip accounts") }}
+    {% trans branding_name=branding_name %}Your {{ branding_name }} accounts{% endtrans %}
 {% else %}
-    {{ _("No Zulip accounts found") }}
+    {% trans branding_name=branding_name %}No {{ branding_name }} accounts found{% endtrans %}
 {% endif %}

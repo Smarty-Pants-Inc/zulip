@@ -1,8 +1,8 @@
 {{t 'You will now see the channel you created. To go back to channel settings, you can:' }}
 <ul>
     <li>
-        {{#tr}}
-        Click on <z-stream></z-stream> at the top of your Zulip window.
+        {{#tr branding_name=(brand_name)}}
+        Click on <z-stream></z-stream> at the top of your {branding_name} window.
         {{#*inline "z-stream"}}<b class="highlighted-element">{{> ../inline_decorated_channel_name stream=stream}}</b>{{/inline}}
         {{/tr}}
     </li>

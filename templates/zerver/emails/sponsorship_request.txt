@@ -7,7 +7,7 @@ Organization type: {{ organization_type }}
 Description:
 {{ description }}
 
-How do you plan to use Zulip?
+{% trans branding_name=branding_name %}How do you plan to use {{ branding_name }}?{% endtrans %}
 {{ plan_to_use_zulip }}
 
 Expected users:

@@ -6,10 +6,10 @@
                 {{ _("Product") }}
             </h3>
             <ul>
-                <li><a href="/why-zulip/">{{ _("Why Zulip") }}</a></li>
+                <li><a href="/why-zulip/">{% trans product_name=branding.name %}Why {{ product_name }}{% endtrans %}</a></li>
                 <li><a href="/features/">{{ _("Features") }}</a></li>
                 <li><a href="/plans/">{{ _("Plans & pricing") }}</a></li>
-                <li><a href="/zulip-cloud/">{{ _("Zulip Cloud") }}</a></li>
+                <li><a href="/zulip-cloud/">{% trans product_name=branding.name %}{{ product_name }} Cloud{% endtrans %}</a></li>
                 <li><a href="/self-hosting/">{{ _("Self-hosting") }}</a></li>
                 <li><a href="/security/">{{ _("Security") }}</a></li>
                 <li><a href="/integrations/">{{ _("Integrations") }}</a></li>
@@ -46,20 +46,20 @@
                 <li><a href="/help/contact-support">{{ _("Contact support") }}</a></li>
                 <li><a href="/request-demo/">{{ _("Get a demo") }}</a></li>
                 <li><a href="/partners/">{{ _("Partners") }}</a></li>
-                <li class="extra_margin"><a href="https://status.zulip.com/">{{ _("Zulip Cloud status") }}</a></li>
+                <li class="extra_margin"><a href="{{ branding.urls.status }}">{{ _("Status") }}</a></li>
                 <li>
                     <a href="/help/moving-to-zulip">
-                        {{ _("Moving to Zulip") }}
+                        {% trans product_name=branding.name %}Moving to {{ product_name }}{% endtrans %}
                     </a>
                 </li>
                 <li>
-                    <a href="https://zulip.readthedocs.io/en/stable/production/install.html">
-                        {{ _("Installing a Zulip server") }}
+                    <a href="{{ branding.urls.server_installation }}">
+                        {% trans product_name=branding.name %}Installing a {{ product_name }} server{% endtrans %}
                     </a>
                 </li>
                 <li>
-                    <a href="https://zulip.readthedocs.io/en/stable/production/upgrade.html">
-                        {{ _("Upgrading a Zulip server") }}
+                    <a href="{{ branding.urls.server_upgrade }}">
+                        {% trans product_name=branding.name %}Upgrading a {{ product_name }} server{% endtrans %}
                     </a>
                 </li>
             </ul>
@@ -81,7 +81,7 @@
                     </a>
                 </li>
                 <li><a href="/api/">API</a></li>
-                <li><a href="https://github.com/zulip/zulip/">{{ _("GitHub") }}</a></li>
+                <li><a href="{{ branding.urls.github }}">{{ _("GitHub") }}</a></li>
             </ul>
         </div>
         <div class="footer__section">
@@ -96,13 +96,13 @@
                 </li>
                 <li><a href="/values/">{{ _("Values") }}</a></li>
                 <li><a href="/jobs/">{{ _("Jobs") }}</a></li>
-                <li><a href="https://blog.zulip.com/"  target="_blank">{{ _("Blog") }}</a></li>
-                <li><a href="https://zulip.com/help/support-zulip-project">{{ _("Support Zulip") }}</a></li>
+                <li><a href="{{ branding.urls.blog }}"  target="_blank">{{ _("Blog") }}</a></li>
+                <li><a href="{{ branding.urls.support_project }}">{% trans product_name=branding.name %}Support {{ product_name }}{% endtrans %}</a></li>
             </ul>
             <div class="footer-social-links">
-                <a class="footer-social-icon footer-social-icon-x" title="{{ _('X (Twitter)') }}" href="https://twitter.com/zulip" target="_blank" rel="noopener noreferrer"></a>
-                <a class="footer-social-icon footer-social-icon-mastodon" title="{{ _('Mastodon') }}" href="https://fosstodon.org/@zulip" target="_blank" rel="noopener noreferrer"></a>
-                <a class="footer-social-icon footer-social-icon-linkedin" title="{{ _('LinkedIn') }}" href="https://www.linkedin.com/company/zulip-by-kandra-labs/" target="_blank" rel="noopener noreferrer"></a>
+                <a class="footer-social-icon footer-social-icon-x" title="{{ _('X (Twitter)') }}" href="{{ branding.urls.twitter }}" target="_blank" rel="noopener noreferrer"></a>
+                <a class="footer-social-icon footer-social-icon-mastodon" title="{{ _('Mastodon') }}" href="{{ branding.urls.mastodon }}" target="_blank" rel="noopener noreferrer"></a>
+                <a class="footer-social-icon footer-social-icon-linkedin" title="{{ _('LinkedIn') }}" href="{{ branding.urls.linkedin }}" target="_blank" rel="noopener noreferrer"></a>
             </div>
         </div>
     </div>
@@ -110,9 +110,11 @@
     <div class="footer__legal {% if not corporate_enabled %}footer__legal_not_corporate{% endif %}">
         <div class="footer__legal-container">
             {% if corporate_enabled %}
-            <div class="copyright">© Kandra Labs, Inc. (“Zulip”)</div>
+            <div class="copyright">© {{ branding.name }}</div>
             {% else %}
-            <div class="copyright">{% trans %}Powered by <a href="https://zulip.com">Zulip</a>{% endtrans %}</div>
+            {% if branding.powered_by_enabled %}
+            <div class="copyright">{% trans brand_name=branding.name brand_url=branding.urls.homepage %}Powered by <a href="{{ brand_url }}">{{ brand_name }}</a>{% endtrans %}</div>
+            {% endif %}
             {% endif %}
             <div class="footer__legal-spacer"></div>
             {% if not corporate_enabled %}
@@ -121,7 +123,7 @@
             <a href="{{ root_domain_url }}/policies/terms">{{ _("Terms of Service") }}</a>
             <a href="{{ root_domain_url }}/policies/privacy">{{ _("Privacy policy") }}</a>
             {% if corporate_enabled %}
-            <a href="https://zulip.com/attribution/">{{ _("Website attributions") }}</a>
+            <a href="{{ branding.urls.attribution }}">{{ _("Website attributions") }}</a>
             {% endif %}
         </div>
     </div>

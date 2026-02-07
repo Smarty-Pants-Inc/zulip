@@ -7,7 +7,7 @@
 {% block content %}
 
 <p>
-    {% trans %}If you've already decided to use Zulip for your organization, welcome! You can use our <a href="{{ get_organization_started }}">guide for moving to Zulip</a> to get started.{% endtrans %}
+    {% trans branding_name=branding_name %}If you've already decided to use {{ branding_name }} for your organization, welcome! You can use our <a href="{{ get_organization_started }}">guide for moving to {{ branding_name }}</a> to get started.{% endtrans %}
 </p>
 <p>
     {% trans %}Otherwise, here is some advice we often hear from customers for evaluating <i>any</i> team chat product:{% endtrans %}
@@ -20,7 +20,7 @@
     </li>
 </ol>
 <p>
-    {% trans %}Zulip is designed to <a href="{{ why_zulip }}">enable efficient communication</a>, and we hope these tips help your team experience it in action.{% endtrans %}
+    {% trans branding_name=branding_name %}{{ branding_name }} is designed to <a href="{{ why_zulip }}">enable efficient communication</a>, and we hope these tips help your team experience it in action.{% endtrans %}
 </p>
 
 <p>

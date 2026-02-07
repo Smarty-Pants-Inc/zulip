@@ -4,7 +4,7 @@
 {% if released_version %}
 You are receiving this email because you opted into release notifications.
 {% else %}
-You are receiving this email to update you about important changes to Zulip's Terms of Service.
+You are receiving this email to update you about important changes to {{ branding_name }}'s Terms of Service.
 
 Unsubscribe: {{ unsubscribe_link }}
 {% endif %}

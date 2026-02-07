@@ -1,5 +1,6 @@
 <p>
-    {{t "Explore how hundreds of community participants use Zulip to brainstorm ideas, discuss technical challenges, ask questions, and give feedback:" }}
+    {{t "Explore how hundreds of community participants use {branding_name} to brainstorm ideas, discuss technical challenges, ask questions, and give feedback:"
+      branding_name=(brand_name) }}
 </p>
 
 <ul>
@@ -12,10 +13,10 @@
         {{/tr}}
     </li>
     <li>
-        {{#tr}}
+        {{#tr branding_name=(brand_name)}}
         Click the name of a channel in the left sidebar, and click on any topic underneath
         to view one conversation at a time. You can explore discussions of changes to the
-        design of the Zulip app in <z-highlight>#design</z-highlight>, or see ongoing issue
+        design of the {branding_name} app in <z-highlight>#design</z-highlight>, or see ongoing issue
         investigations in <z-highlight>#issues</z-highlight>.
         {{#*inline "z-highlight"}}<b class="highlighted-element">{{> @partial-block}}</b>{{/inline}}
         {{/tr}}

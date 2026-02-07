@@ -4,8 +4,12 @@ import assert from "minimalistic-assert";
 
 import render_banner from "../../templates/components/banner.hbs";
 import render_filter_input from "../../templates/components/showroom/filter_input.hbs";
+import {page_params} from "../base_page_params.ts";
+import {getBrandName} from "../branding.ts";
 import {$t, $t_html} from "../i18n.ts";
 import type {HTMLSelectOneElement} from "../types.ts";
+
+const brandName = getBrandName(page_params);
 
 type ComponentIntent = "neutral" | "brand" | "info" | "success" | "warning" | "danger";
 
@@ -89,7 +93,7 @@ const alert_banners: Record<string, AlertBanner> = {
     "email-server": {
         process: "email-server",
         intent: "warning",
-        label: "Zulip needs to send email to confirm users' addresses and send notifications.",
+        label: `${brandName} needs to send email to confirm users' addresses and send notifications.`,
         buttons: [
             {
                 variant: "subtle",
@@ -128,10 +132,13 @@ const alert_banners: Record<string, AlertBanner> = {
         process: "desktop-notifications",
         intent: "brand",
         label: new Handlebars.SafeString(
-            $t_html({
-                defaultMessage:
-                    "Zulip needs your permission to enable desktop notifications for important messages.",
-            }),
+            $t_html(
+                {
+                    defaultMessage:
+                        "{brandName} needs your permission to enable desktop notifications for important messages.",
+                },
+                {brandName},
+            ),
         ),
         buttons: [
             {
@@ -170,7 +177,7 @@ const alert_banners: Record<string, AlertBanner> = {
     "insecure-desktop-app": {
         process: "insecure-desktop-app",
         intent: "warning",
-        label: "Zulip Desktop is not updating automatically. Please upgrade for security updates and other improvements.",
+        label: `${brandName} Desktop is not updating automatically. Please upgrade for security updates and other improvements.`,
         buttons: [
             {
                 variant: "subtle",
@@ -184,7 +191,7 @@ const alert_banners: Record<string, AlertBanner> = {
     "unsupported-browser": {
         process: "unsupported-browser",
         intent: "warning",
-        label: "Because you're using an unsupported or very old browser, Zulip may not work as expected.",
+        label: `Because you're using an unsupported or very old browser, ${brandName} may not work as expected.`,
         buttons: [
             {
                 variant: "text",
@@ -212,7 +219,7 @@ const alert_banners: Record<string, AlertBanner> = {
     "server-needs-upgrade": {
         process: "server-needs-upgrade",
         intent: "danger",
-        label: "This Zulip server is running an old version and should be upgraded.",
+        label: `This ${brandName} server is running an old version and should be upgraded.`,
         buttons: [
             {
                 variant: "subtle",

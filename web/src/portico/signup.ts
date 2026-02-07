@@ -4,6 +4,7 @@ import assert from "minimalistic-assert";
 import * as z from "zod/mini";
 
 import {page_params as base_page_params} from "../base_page_params.ts";
+import {getBrandName} from "../branding.ts";
 import * as common from "../common.ts";
 import * as emojisets from "../emojisets.ts";
 import {$t} from "../i18n.ts";
@@ -14,6 +15,8 @@ import * as portico_modals from "./portico_modals.ts";
 
 /* global AltchaWidgetMethods, AltchaStateChangeEvent */
 import "altcha";
+
+const brandName = getBrandName(base_page_params);
 
 $(() => {
     // Initialize emoji rendering for login/signup pages
@@ -291,34 +294,46 @@ $(() => {
         // 'templates/zerver/create_user/new_user_email_address_visibility.html'.
         switch (selected_val) {
             case settings_config.email_address_visibility_values.admins_only.code: {
-                selected_option_text = $t({
-                    defaultMessage:
-                        "Administrators of this Zulip organization will be able to see this email address.",
-                });
+                selected_option_text = $t(
+                    {
+                        defaultMessage:
+                            "Administrators of this {brandName} organization will be able to see this email address.",
+                    },
+                    {brandName},
+                );
 
                 break;
             }
             case settings_config.email_address_visibility_values.moderators.code: {
-                selected_option_text = $t({
-                    defaultMessage:
-                        "Administrators and moderators this Zulip organization will be able to see this email address.",
-                });
+                selected_option_text = $t(
+                    {
+                        defaultMessage:
+                            "Administrators and moderators this {brandName} organization will be able to see this email address.",
+                    },
+                    {brandName},
+                );
 
                 break;
             }
             case settings_config.email_address_visibility_values.nobody.code: {
-                selected_option_text = $t({
-                    defaultMessage:
-                        "Nobody in this Zulip organization will be able to see this email address.",
-                });
+                selected_option_text = $t(
+                    {
+                        defaultMessage:
+                            "Nobody in this {brandName} organization will be able to see this email address.",
+                    },
+                    {brandName},
+                );
 
                 break;
             }
             default: {
-                selected_option_text = $t({
-                    defaultMessage:
-                        "Other users in this Zulip organization will be able to see this email address.",
-                });
+                selected_option_text = $t(
+                    {
+                        defaultMessage:
+                            "Other users in this {brandName} organization will be able to see this email address.",
+                    },
+                    {brandName},
+                );
             }
         }
         $("#new-user-email-address-visibility .current-selected-option").text(selected_option_text);
