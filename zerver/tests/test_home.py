@@ -44,6 +44,7 @@ class HomeTest(ZulipTestCase):
     # Keep this list sorted!!!
     expected_page_params_keys = [
         "apps_page_url",
+        "branding",
         "corporate_enabled",
         "development_environment",
         "embedded_bots_enabled",

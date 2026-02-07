@@ -4,12 +4,17 @@ import {narrow_term_schema, state_data_schema} from "./state_data.ts";
 
 const t1 = performance.now();
 
+const branding_schema = z.object({
+    name: z.string(),
+});
+
 // Sync this with zerver.context_processors.zulip_default_context.
 const default_params_schema = z.object({
     page_type: z.literal("default"),
     development_environment: z.boolean(),
     google_analytics_id: z.optional(z.string()),
     request_language: z.string(),
+    branding: branding_schema,
 });
 // Sync this with zerver.context_processors.login_context.
 const login_page_params_schema = z.object({

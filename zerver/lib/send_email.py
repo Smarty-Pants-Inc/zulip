@@ -58,7 +58,7 @@ def get_inliner_instance() -> css_inline.CSSInliner:
 
 
 class FromAddress:
-    SUPPORT = parseaddr(settings.ZULIP_ADMINISTRATOR)[1]
+    SUPPORT = parseaddr(settings.BRAND_SUPPORT_EMAIL)[1]
     NOREPLY = parseaddr(settings.NOREPLY_EMAIL_ADDRESS)[1]
 
     support_placeholder = "SUPPORT"
@@ -153,6 +153,14 @@ def build_email(
     context = {
         **context,
         "support_email": FromAddress.SUPPORT,
+        # Branding helpers for fork/whitelabel deployments.
+        "branding_name": settings.BRAND_NAME,
+        "branding_support_email": FromAddress.SUPPORT,
+        "branding_urls": {
+            "homepage": settings.BRAND_WEBSITE_URL,
+            "help": settings.BRAND_HELP_URL,
+            "status": settings.BRAND_STATUS_URL,
+        },
         # Emails use unhashed image URLs so that those continue to
         # work over time, even if the prod-static directory is cleaned
         # out; as such, they just use a STATIC_URL prefix.

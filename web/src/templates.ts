@@ -4,7 +4,9 @@ import {z} from "zod/mini";
 
 import * as blueslip from "./blueslip.ts";
 import * as common from "./common.ts";
+import {getBrandName} from "./branding.ts";
 import {default_html_elements, intl} from "./i18n.ts";
+import {page_params} from "./base_page_params.ts";
 import {postprocess_content} from "./postprocess_content.ts";
 import {user_settings} from "./user_settings.ts";
 
@@ -93,6 +95,9 @@ Handlebars.helpers["unless"] = function (conditional, options): unknown {
 Handlebars.registerHelper({
     eq(a, b) {
         return a === b;
+    },
+    brand_name() {
+        return getBrandName(page_params);
     },
     and(...args: unknown[]) {
         args.pop(); // Handlebars options

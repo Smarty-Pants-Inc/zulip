@@ -568,6 +568,51 @@ INSTALLATION_NAME = EXTERNAL_HOST
 # Used to change the Zulip logo in portico pages.
 CUSTOM_LOGO_URL: str | None = None
 
+# Branding settings for white-label deployments / forks.
+#
+# These are intended to be safe defaults matching upstream Zulip behavior.
+# They can be overridden in /etc/zulip/settings.py as well as via
+# environment variables (see zproject/computed_settings.py).
+BRAND_NAME: str = "Zulip"
+
+# Public product/marketing URLs.
+BRAND_WEBSITE_URL: str = "https://zulip.com/"
+BRAND_HELP_URL: str = "https://zulip.com/help/"
+BRAND_STATUS_URL: str = "https://status.zulip.com/"
+BRAND_BLOG_URL: str = "https://blog.zulip.com/"
+BRAND_GITHUB_URL: str = "https://github.com/zulip/zulip/"
+
+# Social profiles (used in some footers).
+BRAND_TWITTER_URL: str = "https://twitter.com/zulip"
+BRAND_MASTODON_URL: str = "https://fosstodon.org/@zulip"
+BRAND_LINKEDIN_URL: str = "https://www.linkedin.com/company/zulip/"
+
+# Docs / help URLs used in portico and support flows.
+BRAND_AUTHENTICATION_DOCS_URL: str = (
+    "https://zulip.readthedocs.io/en/latest/production/authentication-methods.html"
+)
+BRAND_TROUBLESHOOTING_URL: str = (
+    "https://zulip.readthedocs.io/en/latest/production/troubleshooting.html"
+)
+BRAND_SERVER_INSTALLATION_URL: str = "https://zulip.readthedocs.io/en/latest/production/install.html"
+BRAND_SERVER_UPGRADE_URL: str = "https://zulip.readthedocs.io/en/latest/production/upgrade.html"
+
+# Other external links used in some UI.
+BRAND_SUPPORT_PROJECT_URL: str = "https://zulip.com/help/support-zulip"
+BRAND_ATTRIBUTION_URL: str = "/attribution/"
+BRAND_SELF_HOSTED_BILLING_LOGIN_URL: str = (
+    "https://zulip.com/help/self-hosted-billing#log-into-plan-management"
+)
+
+# Contact address for user-visible support links and outgoing email templates.
+BRAND_SUPPORT_EMAIL: str = ZULIP_ADMINISTRATOR
+
+# Optional OpenGraph image URL for portico pages.
+BRAND_OG_IMAGE_URL: str | None = None
+
+# Controls whether templates should display a "Powered by ..." attribution.
+BRAND_POWERED_BY_ZULIP: bool = True
+
 # Random salt used when deterministically generating passwords in
 # development.
 INITIAL_PASSWORD_SALT: str | None = None

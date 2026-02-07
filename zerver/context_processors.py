@@ -20,7 +20,7 @@ from zerver.lib.i18n import get_language_list
 from zerver.lib.realm_description import get_realm_rendered_description, get_realm_text_description
 from zerver.lib.realm_icon import get_realm_icon_url
 from zerver.lib.request import RequestNotes
-from zerver.lib.send_email import FromAddress
+from zerver.lib.branding import get_branding_context, get_branding_page_params
 from zerver.lib.subdomains import get_subdomain, is_root_domain_available
 from zerver.models import PreregistrationRealm, Realm, RealmUserDefault, UserProfile
 from zerver.models.realms import get_realm
@@ -42,6 +42,7 @@ DEFAULT_PAGE_PARAMS: Mapping[str, Any] = {
     # possible.
     "request_language": "en",
 }
+
 
 
 def common_context(user: UserProfile) -> dict[str, Any]:
@@ -88,7 +89,7 @@ def get_valid_realm_from_request(request: HttpRequest) -> Realm:
 def get_apps_page_url() -> str:
     if settings.CORPORATE_ENABLED:
         return "/apps/"
-    return "https://zulip.com/apps/"
+    return urljoin(settings.BRAND_WEBSITE_URL.rstrip("/") + "/", "apps/")
 
 
 def is_isolated_page(request: HttpRequest) -> bool:
@@ -164,7 +165,10 @@ def zulip_default_context(request: HttpRequest) -> dict[str, Any]:
     # Used to remove links to Zulip docs and landing page from footer of self-hosted pages.
     corporate_enabled = settings.CORPORATE_ENABLED
 
-    support_email = FromAddress.SUPPORT
+    branding = get_branding_context()
+    page_params_branding = get_branding_page_params()
+
+    support_email = branding["support_email"]
     support_email_html_tag = SafeString(
         f'<a href="mailto:{escape(support_email)}">{escape(support_email)}</a>'
     )
@@ -173,11 +177,13 @@ def zulip_default_context(request: HttpRequest) -> dict[str, Any]:
     default_page_params: dict[str, Any] = {
         **DEFAULT_PAGE_PARAMS,
         "request_language": get_language(),
+        "branding": page_params_branding,
     }
 
     context = {
         "root_domain_landing_page": settings.ROOT_DOMAIN_LANDING_PAGE,
         "custom_logo_url": settings.CUSTOM_LOGO_URL,
+        "branding": branding,
         "register_link_disabled": register_link_disabled,
         "terms_of_service": settings.TERMS_OF_SERVICE_VERSION is not None,
         "login_url": settings.HOME_NOT_LOGGED_IN,

@@ -171,6 +171,7 @@ const config = (
                         knownHelpers: [
                             // The ones below are defined in web/src/templates.ts
                             "eq",
+                            "brand_name",
                             "and",
                             "or",
                             "not",
