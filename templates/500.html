@@ -1,7 +1,16 @@
 {% extends "zerver/portico_error_pages/portico_error_page.html" %}
 
+{#
+  This template may be rendered in contexts where our usual branding context
+  processor isn't available; guard access to `branding` accordingly.
+#}
+{% set brand_name = branding.name if branding is defined else 'Smarty Pants' %}
+{% set brand_support_email = branding.support_email if branding is defined else 'support@smartypants.ai' %}
+{% set brand_status_url = branding.urls.status if branding is defined else '' %}
+{% set brand_troubleshooting_url = branding.urls.troubleshooting if branding is defined else 'https://zulip.readthedocs.io/en/latest/production/troubleshooting.html' %}
+
 {% block title %}
-<title>{{ _("Internal server error") }} | {{ branding.name }}</title>
+<title>{{ _("Internal server error") }} | {{ brand_name }}</title>
 {% endblock %}
 
 {% block customhead %}
@@ -24,7 +33,7 @@
                 {% endtrans %}
             </p>
             <p>
-                {% trans status_url=branding.urls.status, support_email=branding.support_email %}
+                {% trans status_url=brand_status_url, support_email=brand_support_email %}
                 Please check <a href="{{status_url}}">the status page</a> for
                 more information, and <a href="mailto:{{support_email}}">contact
                 support</a> with any questions.
@@ -39,12 +48,12 @@
                 {% endtrans %}
             </p>
             <p>
-                {% trans %}
+                {% trans support_email=brand_support_email %}
                 <a href="mailto:{{support_email}}">Contact this server's administrators</a> for support.
                 {% endtrans %}
             </p>
             <p>
-                {% trans troubleshooting_url=branding.urls.troubleshooting %}
+                {% trans troubleshooting_url=brand_troubleshooting_url %}
                 If you administer this server, you may want to check out the
                 <a href="{{troubleshooting_url}}">server troubleshooting guide</a>.
                 {% endtrans %}
