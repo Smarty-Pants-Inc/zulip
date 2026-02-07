@@ -1,7 +1,5 @@
 import * as z from "zod/mini";
 
-import {z} from "zod/mini";
-
 import {narrow_term_schema, state_data_schema} from "./state_data.ts";
 
 const t1 = performance.now();

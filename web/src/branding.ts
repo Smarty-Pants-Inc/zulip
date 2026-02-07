@@ -1,7 +1,5 @@
 export const DEFAULT_BRAND_NAME = "Zulip";
 
-export const DEFAULT_BRAND_NAME = "Zulip";
-
 type ParamsWithBrandingName = {
     branding?: {
         name?: string;
