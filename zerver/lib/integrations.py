@@ -677,7 +677,14 @@ INCOMING_WEBHOOK_INTEGRATIONS: list[IncomingWebhookIntegration] = [
             )
         ],
         display_name="GitLab",
-        url_options=[WebhookUrlOption.build_preset_config(PresetUrlOption.BRANCHES)],
+        url_options=[
+            WebhookUrlOption.build_preset_config(PresetUrlOption.BRANCHES),
+            WebhookUrlOption(
+                name="ignore_private_projects",
+                label="Exclude notifications from private projects",
+                validator=check_bool,
+            ),
+        ],
     ),
     IncomingWebhookIntegration(
         "gocd",
@@ -982,6 +989,7 @@ PLUGIN_INTEGRATIONS: list[Integration] = [
         ["continuous-integration"],
         [FixturelessScreenshotConfigOptions(image_name="004.png")],
     ),
+    Integration("nextcloud", ["productivity"]),
     Integration("onyx", ["productivity"], logo="images/integrations/logos/onyx.png"),
 ]
 
@@ -1138,6 +1146,7 @@ INTEGRATIONS_WITHOUT_SCREENSHOTS = (
     | {
         # these integrations do not send messages
         "giphy",
+        "nextcloud",
         "tenor",
         # the integration is planned to be removed
         "twitter",

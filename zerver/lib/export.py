@@ -1530,7 +1530,7 @@ def fetch_client_data(response: TableData, client_ids: set[int]) -> None:
 
 
 def fetch_submessage_data(response: TableData, message_ids: set[int]) -> None:
-    query = SubMessage.objects.filter(message_id__in=list(message_ids))
+    query = SubMessage.objects.filter(message_id__in=list(message_ids)).order_by("id")
     response["zerver_submessage"] = make_raw(query.iterator())
 
 
@@ -1837,7 +1837,7 @@ def export_partial_message_files(
             user_profile_id__in=consented_user_ids
         ).values_list("recipient_id", flat=True)
 
-        recipient_ids_set = set(public_stream_recipient_ids) | set(consented_recipient_ids) - set(
+        recipient_ids_set = (set(public_stream_recipient_ids) | set(consented_recipient_ids)) - set(
             streams_with_protected_history_recipient_ids
         )
         recipient_ids_for_us = get_ids(response["zerver_recipient"]) & recipient_ids_set
