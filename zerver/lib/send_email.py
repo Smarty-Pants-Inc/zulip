@@ -34,7 +34,6 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
 
 from confirmation.models import generate_key
-from zerver.lib.branding import get_branding_context
 from zerver.lib.logging_util import log_to_file
 from zerver.lib.queue import queue_event_on_commit
 from zerver.models import Realm, RealmAuditLog, ScheduledEmail, UserProfile
@@ -151,6 +150,9 @@ def build_email(
         extra_headers["References"] = references
 
     assert settings.STATIC_URL is not None
+
+    # Local import to avoid a circular import (branding imports FromAddress).
+    from zerver.lib.branding import get_branding_context
 
     branding = get_branding_context(realm)
 
