@@ -15,7 +15,7 @@ ZULIP_VERSION = lines.pop(0).strip()
 ZULIP_MERGE_BASE = lines.pop(0).strip()
 
 LATEST_MAJOR_VERSION = "11.0"
-LATEST_RELEASE_VERSION = "11.4"
+LATEST_RELEASE_VERSION = "11.5"
 LATEST_RELEASE_ANNOUNCEMENT = "https://blog.zulip.com/zulip-server-11-0"
 
 # Versions of the desktop app below DESKTOP_MINIMUM_VERSION will be
@@ -35,7 +35,7 @@ DESKTOP_WARNING_VERSION = "5.9.3"
 # new level means in api_docs/changelog.md, as well as "**Changes**"
 # entries in the endpoint's documentation in `zulip.yaml`.
 
-API_FEATURE_LEVEL = 458
+API_FEATURE_LEVEL = 459
 
 # Bump the minor PROVISION_VERSION to indicate that folks should provision
 # only when going from an old version of the code to a newer version. Bump
@@ -50,4 +50,4 @@ API_FEATURE_LEVEL = 458
 #   historical commits sharing the same major version, in which case a
 #   minor version bump suffices.
 
-PROVISION_VERSION = (367, 0)  # bumped 2026-01-30 to patch autosize
+PROVISION_VERSION = (369, 1)  # bumped 2026-02-02 to add compressorjs
