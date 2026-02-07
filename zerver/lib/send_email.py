@@ -34,6 +34,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
 
 from confirmation.models import generate_key
+from zerver.lib.branding import get_branding_context
 from zerver.lib.logging_util import log_to_file
 from zerver.lib.queue import queue_event_on_commit
 from zerver.models import Realm, RealmAuditLog, ScheduledEmail, UserProfile
@@ -150,16 +151,19 @@ def build_email(
         extra_headers["References"] = references
 
     assert settings.STATIC_URL is not None
+
+    branding = get_branding_context(realm)
+
     context = {
         **context,
-        "support_email": FromAddress.SUPPORT,
+        "support_email": branding["support_email"],
         # Branding helpers for fork/whitelabel deployments.
-        "branding_name": settings.BRAND_NAME,
-        "branding_support_email": FromAddress.SUPPORT,
+        "branding_name": branding["name"],
+        "branding_support_email": branding["support_email"],
         "branding_urls": {
-            "homepage": settings.BRAND_WEBSITE_URL,
-            "help": settings.BRAND_HELP_URL,
-            "status": settings.BRAND_STATUS_URL,
+            "homepage": branding["urls"]["homepage"],
+            "help": branding["urls"]["help"],
+            "status": branding["urls"]["status"],
         },
         # Emails use unhashed image URLs so that those continue to
         # work over time, even if the prod-static directory is cleaned

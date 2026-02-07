@@ -198,6 +198,7 @@ from zerver.views.smarty_pants import (
     pause_smarty_pants_agent,
     set_smarty_pants_agent_budget,
     set_smarty_pants_memory,
+    s2s_realm_branding,
     update_agent_memory_block,
 )
 from zerver.views.storage import get_storage, remove_storage, update_storage
@@ -927,6 +928,7 @@ urls += [
     path("api/internal/tusd", handle_tusd_hook),
     path("api/internal/web_reload_clients", web_reload_clients),
     path("api/v1/events/internal", get_events_internal),
+    path("api/s2s/smarty_pants/realm/branding", s2s_realm_branding),
 ]
 
 # Python Social Auth
