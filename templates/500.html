@@ -24,7 +24,7 @@
                 {% endtrans %}
             </p>
             <p>
-                {% trans status_url=branding.urls.status support_email=branding.support_email %}
+                {% trans status_url=branding.urls.status, support_email=branding.support_email %}
                 Please check <a href="{{status_url}}">the status page</a> for
                 more information, and <a href="mailto:{{support_email}}">contact
                 support</a> with any questions.
