@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from zerver.actions.channel_folders import check_add_channel_folder, do_unarchive_channel_folder
 from zerver.actions.create_user import do_create_user, do_reactivate_user
-from zerver.actions.streams import bulk_add_subscriptions, do_change_stream_folder
+from zerver.actions.streams import bulk_add_subscriptions, bulk_remove_subscriptions, do_change_stream_folder
 from zerver.actions.users import do_deactivate_user
 from zerver.lib.branding import get_branding_context
 from zerver.lib.exceptions import AccessDeniedError, JsonableError, ResourceNotFoundError
@@ -30,6 +30,9 @@ from zerver.models.realms import InvalidFakeEmailDomainError
 from zerver.models.users import UserProfile, get_user_by_delivery_email, get_user_profile_by_id_in_realm
 
 SPONSORS_GROUP_NAME = "Sponsors"
+
+PROJECTS_FOLDER_NAME = "Projects"
+PROJECTS_FOLDER_DESCRIPTION = "Project channels managed by Smarty Pants."
 
 # Convex control plane base URL (e.g. https://<deployment>.convex.site)
 SMARTY_PANTS_CONTROL_PLANE_BASE_URL_ENV_VAR = "SMARTY_PANTS_CONTROL_PLANE_BASE_URL"
@@ -65,8 +68,6 @@ class SmartydSession(OutgoingSession):
 @dataclass
 class ProvisionedZulipAgent:
     bot_user: UserProfile
-    channel_folder: ChannelFolder
-    streams: list[Stream]
 
 
 def require_sponsors_group_member(
@@ -500,114 +501,72 @@ def _truncate(s: str, max_len: int) -> str:
     return s[:max_len].rstrip()
 
 
-_AGENT_STREAM_SUFFIXES = ["", ": heartbeat", ": announcements"]
+# NOTE (2026-02-08): Per-agent channel folders/streams were an MVP prototyping layout.
+# We now treat Zulip streams as Projects (workspaces) and use DMs for 1:1.
+# Agents are attached to Projects by subscribing their bot user to the relevant stream.
 
 
-def _pick_unique_agent_stream_base_name(
-    realm: Realm,
-    *,
-    channel_folder: ChannelFolder,
-    desired_base: str,
-) -> str:
-    """Pick a base name for the agent's home channel without hijacking existing channels.
-
-    Zulip channel names are case-insensitive and must be unique within a realm. In a dev
-    realm, generic names like "test" often already exist (with sample topics/messages).
-
-    We do **not** want to move that existing channel into the agent's folder, because
-    that would make the new agent appear to have random pre-existing threads.
-
-    Strategy:
-    - If the desired channel name (and its derived channels) are free, use it.
-    - If any conflict exists outside the agent's channel folder, disambiguate by
-      appending " (agent)", " (agent 2)", etc.
-
-    We also cap the base length so the derived channels (": heartbeat", ": announcements")
-    fit within `Stream.MAX_NAME_LENGTH`.
-    """
-
-    suffixes = _AGENT_STREAM_SUFFIXES
-    max_suffix_len = max(len(s) for s in suffixes)
-    base_max = max(1, Stream.MAX_NAME_LENGTH - max_suffix_len)
-
-    base = _truncate(desired_base.strip() or "agent", base_max)
-
-    def stream_conflicts(name: str) -> bool:
-        existing = (
-            Stream.objects.filter(realm=realm, name__iexact=name)
-            .order_by("id")
-            .first()
-        )
-        # Treat deactivated channels as conflicts too; otherwise we'll "reuse" a
-        # deactivated channel name and end up with no visible channels after create.
-        return (
-            existing is not None
-            and (existing.deactivated is True or existing.folder_id != channel_folder.id)
-        )
-
-    def stream_ok_or_ours(name: str) -> bool:
-        existing = (
-            Stream.objects.filter(realm=realm, name__iexact=name)
-            .order_by("id")
-            .first()
-        )
-        if existing is None:
-            return True
-        if existing.deactivated is True:
-            return False
-        return existing.folder_id == channel_folder.id
-
-    # If the full set doesn't conflict, we're good.
-    def all_channels_available(candidate_base: str) -> bool:
-        for suffix in suffixes:
-            name = _truncate(candidate_base + suffix, Stream.MAX_NAME_LENGTH)
-            if not stream_ok_or_ours(name):
-                return False
-        return True
-
-    if all_channels_available(base):
-        return base
-
-    # Disambiguate base until the whole set is available.
-    for n in range(1, 50):
-        extra = " (agent)" if n == 1 else f" (agent {n})"
-        # Ensure extra survives truncation.
-        prefix_max = max(1, base_max - len(extra))
-        candidate_base = _truncate(base, prefix_max) + extra
-
-        # Fast fail: if *base* itself conflicts outside folder, skip.
-        if stream_conflicts(_truncate(candidate_base, Stream.MAX_NAME_LENGTH)):
-            continue
-
-        if all_channels_available(candidate_base):
-            return candidate_base
-
-    raise JsonableError(
-        _(
-            "Channel name '{name}' is unavailable in this organization. Please choose a different agent name."
-        ).format(name=desired_base)
-    )
+def _coerce_bool_param(value: object, *, field_name: str) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return _parse_bool_param(value)
+    raise JsonableError(_("The '{field_name}' parameter must be a boolean.").format(field_name=field_name))
 
 
-def _agent_stream_names(realm: Realm, channel_folder: ChannelFolder, agent_name: str) -> list[str]:
-    base = _pick_unique_agent_stream_base_name(
+def _ensure_projects_channel_folder(user_profile: UserProfile) -> ChannelFolder:
+    realm = user_profile.realm
+
+    folder = ChannelFolder.objects.filter(
+        realm=realm,
+        name__iexact=PROJECTS_FOLDER_NAME,
+        is_archived=False,
+    ).first()
+    if folder is not None:
+        return folder
+
+    # Prefer unarchiving a previous Projects folder over creating a second one.
+    archived = ChannelFolder.objects.filter(
+        realm=realm,
+        name__iexact=PROJECTS_FOLDER_NAME,
+        is_archived=True,
+    ).order_by("-id").first()
+    if archived is not None:
+        do_unarchive_channel_folder(archived, acting_user=user_profile)
+        return archived
+
+    return check_add_channel_folder(
         realm,
-        channel_folder=channel_folder,
-        desired_base=agent_name,
+        PROJECTS_FOLDER_NAME,
+        PROJECTS_FOLDER_DESCRIPTION,
+        acting_user=user_profile,
     )
-    return [_truncate(base + suffix, Stream.MAX_NAME_LENGTH) for suffix in _AGENT_STREAM_SUFFIXES]
 
 
-def _get_sponsors_group(user_profile: UserProfile) -> NamedUserGroup:
-    return NamedUserGroup.objects.get(realm_for_sharding=user_profile.realm, name=SPONSORS_GROUP_NAME)
+def _get_zulip_bot_user_id_for_agent_id(user_profile: UserProfile, *, agent_id: str) -> int:
+    # We currently do not persist the control-plane agentId<->bot mapping in Zulip.
+    # So we resolve it via the control plane.
+    list_result = _call_control_plane_list_agents(user_profile, include_disabled=True)
+    raw_agents = list_result.get("agents")
 
+    if isinstance(raw_agents, list):
+        for item in raw_agents:
+            if not isinstance(item, dict):
+                continue
+            agent = item.get("agent")
+            binding = item.get("binding")
+            if not isinstance(agent, dict) or agent.get("id") != agent_id:
+                continue
+            if not isinstance(binding, dict):
+                break
+            bot_user_id = binding.get("zulipBotUserId")
+            if isinstance(bot_user_id, int):
+                return bot_user_id
+            break
 
-def _get_active_sponsors(user_profile: UserProfile, sponsors_group: NamedUserGroup) -> list[UserProfile]:
-    return list(
-        get_recursive_group_members(sponsors_group.id)
-        .filter(realm=user_profile.realm, is_active=True, is_bot=False)
-        .order_by("id")
-    )
+    raise JsonableError(_("Agent not found or missing Zulip bot binding."))
 
 
 def _create_runtime_agent_via_smartyd() -> str:
@@ -653,25 +612,7 @@ def _create_runtime_agent_via_smartyd() -> str:
     return runtime_agent_id
 
 
-def _ensure_channel_folder(user_profile: UserProfile, *, agent_name: str) -> ChannelFolder:
-    folder_name = _truncate(agent_name.strip() or "agent", ChannelFolder.MAX_NAME_LENGTH)
-    folder = (
-        ChannelFolder.objects.filter(realm=user_profile.realm, name__iexact=folder_name)
-        .order_by("id")
-        .first()
-    )
-    if folder is None:
-        return check_add_channel_folder(
-            user_profile.realm,
-            name=folder_name,
-            description="",
-            acting_user=user_profile,
-        )
-
-    if folder.is_archived:
-        do_unarchive_channel_folder(folder, acting_user=user_profile)
-
-    return folder
+# (removed) _ensure_channel_folder: no longer provision per-agent folders
 
 
 def _ensure_agent_bot_user(
@@ -719,39 +660,14 @@ def _ensure_agent_bot_user(
 def _provision_zulip_objects_for_agent(
     user_profile: UserProfile,
     *,
-    sponsors_group: NamedUserGroup,
     agent_name: str,
     runtime_agent_id: str,
 ) -> ProvisionedZulipAgent:
-    channel_folder = _ensure_channel_folder(user_profile, agent_name=agent_name)
+    # New model: do not provision per-agent channels.
+    # Agents participate in Projects by being subscribed to those project streams,
+    # and 1:1 interaction happens via DMs.
     bot_user = _ensure_agent_bot_user(user_profile, agent_name=agent_name, runtime_agent_id=runtime_agent_id)
-
-    streams: list[Stream] = []
-    for stream_name in _agent_stream_names(user_profile.realm, channel_folder, agent_name):
-        stream, _created = create_stream_if_needed(
-            user_profile.realm,
-            stream_name,
-            invite_only=True,
-            stream_description="",
-            can_add_subscribers_group=sponsors_group,
-            can_remove_subscribers_group=sponsors_group,
-            can_subscribe_group=sponsors_group,
-            folder=channel_folder,
-            acting_user=user_profile,
-        )
-        # IMPORTANT: do not move an existing channel into this folder; name conflicts are
-        # resolved by `_agent_stream_names` to avoid hijacking a pre-existing channel.
-        streams.append(stream)
-
-    sponsors = _get_active_sponsors(user_profile, sponsors_group)
-    bulk_add_subscriptions(
-        user_profile.realm,
-        streams,
-        [*sponsors, bot_user],
-        acting_user=user_profile,
-    )
-
-    return ProvisionedZulipAgent(bot_user=bot_user, channel_folder=channel_folder, streams=streams)
+    return ProvisionedZulipAgent(bot_user=bot_user)
 
 
 def _call_control_plane_list_agents(user_profile: UserProfile, *, include_disabled: bool) -> dict[str, Any]:
@@ -784,8 +700,7 @@ def list_smarty_pants_agents(request: HttpRequest, user_profile: UserProfile) ->
                 continue
             entry: dict[str, Any] = dict(agent)
 
-            # New optional fields from the control plane.
-            # These are additive to avoid breaking existing clients.
+            # Optional fields from the control plane.
             if usage is not None:
                 entry["usage"] = usage
             if isinstance(binding, dict):
@@ -824,10 +739,8 @@ def create_smarty_pants_agent(request: HttpRequest, user_profile: UserProfile) -
     else:
         runtime_agent_id = _create_runtime_agent_via_smartyd()
 
-    sponsors_group = _get_sponsors_group(user_profile)
     provisioned = _provision_zulip_objects_for_agent(
         user_profile,
-        sponsors_group=sponsors_group,
         agent_name=name.strip(),
         runtime_agent_id=runtime_agent_id,
     )
@@ -861,10 +774,6 @@ def create_smarty_pants_agent(request: HttpRequest, user_profile: UserProfile) -
         data={
             **control_plane_result,
             "zulip_bot_user_id": provisioned.bot_user.id,
-            "channel_folder_id": provisioned.channel_folder.id,
-            "streams": [
-                {"stream_id": s.id, "name": s.name} for s in provisioned.streams
-            ],
         },
     )
 
@@ -918,10 +827,8 @@ def attach_smarty_pants_agent(request: HttpRequest, user_profile: UserProfile) -
     name = payload.get("name")
     agent_name = name.strip() if isinstance(name, str) and name.strip() else f"Agent {runtime_agent_id[:8]}"
 
-    sponsors_group = _get_sponsors_group(user_profile)
     provisioned = _provision_zulip_objects_for_agent(
         user_profile,
-        sponsors_group=sponsors_group,
         agent_name=agent_name,
         runtime_agent_id=runtime_agent_id,
     )
@@ -1059,6 +966,158 @@ def set_smarty_pants_agent_budget(request: HttpRequest, user_profile: UserProfil
     )
 
     return json_success(request, data=result)
+
+
+@require_sponsors_group_member
+def create_smarty_pants_project(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    """Create (or ensure) a project stream under the "Projects" channel folder.
+
+    Request body (form or JSON):
+      - name: project/stream name (required)
+      - description: stream description (optional)
+      - is_private: boolean (optional; default false)
+
+    Response:
+      - stream_id
+      - stream_name
+      - folder_id
+      - created: whether the stream was newly created
+      - invite_only
+    """
+
+    payload = _parse_request_payload(request)
+
+    name = payload.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise JsonableError(_("Project name is required."))
+    name = name.strip()
+
+    description = payload.get("description")
+    if description is None:
+        description = ""
+    if not isinstance(description, str):
+        raise JsonableError(_("The 'description' parameter must be a string."))
+
+    is_private_value: object | None = None
+    if "is_private" in payload:
+        is_private_value = payload.get("is_private")
+    elif "invite_only" in payload:
+        is_private_value = payload.get("invite_only")
+
+    is_private = _coerce_bool_param(is_private_value, field_name="is_private")
+    invite_only = bool(is_private) if is_private is not None else False
+
+    folder = _ensure_projects_channel_folder(user_profile)
+
+    stream, created = create_stream_if_needed(
+        user_profile.realm,
+        name,
+        invite_only=invite_only,
+        stream_description=description,
+        folder=folder,
+        acting_user=user_profile,
+    )
+
+    if stream.deactivated:
+        raise JsonableError(
+            _("Channel '{channel_name}' is archived. Unarchive it to use it as a project.").format(
+                channel_name=stream.name
+            )
+        )
+
+    # If the stream already existed, ensure it lives under the Projects folder.
+    if not created and stream.folder_id != folder.id:
+        do_change_stream_folder(stream, folder, acting_user=user_profile)
+
+    return json_success(
+        request,
+        data={
+            "stream_id": stream.id,
+            "stream_name": stream.name,
+            "folder_id": folder.id,
+            "created": created,
+            "invite_only": stream.invite_only,
+        },
+    )
+
+
+@require_sponsors_group_member
+def subscribe_smarty_pants_agent_to_project(
+    request: HttpRequest,
+    user_profile: UserProfile,
+    stream_id: int,
+    agent_id: str,
+) -> HttpResponse:
+    """Subscribe an agent's bot user to the given project stream."""
+
+    try:
+        stream = Stream.objects.get(id=stream_id, realm=user_profile.realm)
+    except Stream.DoesNotExist:
+        raise ResourceNotFoundError(_("Channel not found."))
+
+    if stream.deactivated:
+        raise JsonableError(_("Channel is archived."))
+
+    bot_user_id = _get_zulip_bot_user_id_for_agent_id(user_profile, agent_id=agent_id)
+    bot_user = get_user_profile_by_id_in_realm(bot_user_id, user_profile.realm)
+    if not bot_user.is_bot:
+        raise JsonableError(_("Bound user is not a bot."))
+
+    subs_added, already_subscribed = bulk_add_subscriptions(
+        realm=user_profile.realm,
+        streams=[stream],
+        users=[bot_user],
+        acting_user=user_profile,
+    )
+
+    return json_success(
+        request,
+        data={
+            "stream_id": stream.id,
+            "agent_id": agent_id,
+            "zulip_bot_user_id": bot_user.id,
+            "subscribed": len(subs_added) > 0,
+            "already_subscribed": len(already_subscribed) > 0,
+        },
+    )
+
+
+@require_sponsors_group_member
+def unsubscribe_smarty_pants_agent_from_project(
+    request: HttpRequest,
+    user_profile: UserProfile,
+    stream_id: int,
+    agent_id: str,
+) -> HttpResponse:
+    """Unsubscribe an agent's bot user from the given project stream."""
+
+    try:
+        stream = Stream.objects.get(id=stream_id, realm=user_profile.realm)
+    except Stream.DoesNotExist:
+        raise ResourceNotFoundError(_("Channel not found."))
+
+    bot_user_id = _get_zulip_bot_user_id_for_agent_id(user_profile, agent_id=agent_id)
+    bot_user = get_user_profile_by_id_in_realm(bot_user_id, user_profile.realm)
+    if not bot_user.is_bot:
+        raise JsonableError(_("Bound user is not a bot."))
+
+    removed, not_subscribed = bulk_remove_subscriptions(
+        realm=user_profile.realm,
+        users=[bot_user],
+        streams=[stream],
+        acting_user=user_profile,
+    )
+
+    return json_success(
+        request,
+        data={
+            "stream_id": stream.id,
+            "agent_id": agent_id,
+            "zulip_bot_user_id": bot_user.id,
+            "unsubscribed": len(removed) > 0,
+            "already_unsubscribed": len(not_subscribed) > 0,
+        },
+    )
 
 
 @require_sponsors_group_member
