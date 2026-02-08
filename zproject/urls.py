@@ -191,6 +191,7 @@ from zerver.views.smarty_pants import (
     attach_smarty_pants_agent,
     create_agent_memory_block,
     create_smarty_pants_agent,
+    create_smarty_pants_project,
     delete_agent_memory_block,
     get_smarty_pants_memory,
     list_agent_memory_blocks,
@@ -199,6 +200,8 @@ from zerver.views.smarty_pants import (
     set_smarty_pants_agent_budget,
     set_smarty_pants_memory,
     s2s_realm_branding,
+    subscribe_smarty_pants_agent_to_project,
+    unsubscribe_smarty_pants_agent_from_project,
     update_agent_memory_block,
 )
 from zerver.views.storage import get_storage, remove_storage, update_storage
@@ -603,6 +606,12 @@ v1_api_and_json_patterns = [
         "smarty_pants/agents/<str:agent_id>/budget",
         PATCH=set_smarty_pants_agent_budget,
         POST=set_smarty_pants_agent_budget,
+    ),
+    rest_path("smarty_pants/projects", POST=create_smarty_pants_project),
+    rest_path(
+        "smarty_pants/projects/<int:stream_id>/agents/<str:agent_id>",
+        POST=subscribe_smarty_pants_agent_to_project,
+        DELETE=unsubscribe_smarty_pants_agent_from_project,
     ),
     rest_path("smarty_pants/memory", GET=get_smarty_pants_memory, POST=set_smarty_pants_memory),
     rest_path(

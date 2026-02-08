@@ -7,9 +7,11 @@ from unittest import mock
 import orjson
 import requests
 
-from zerver.lib.streams import ensure_stream
+from zerver.actions.create_user import do_create_user
 from zerver.actions.user_groups import check_add_user_group
+from zerver.lib.streams import ensure_stream
 from zerver.lib.test_classes import ZulipTestCase
+from zerver.models import ChannelFolder, Stream, Subscription, UserProfile
 from zerver.models.realms import get_realm
 
 
@@ -32,12 +34,11 @@ class SmartyPantsFacadeTestCase(ZulipTestCase):
     )
     @mock.patch("zerver.views.smarty_pants.SmartyPantsControlPlaneSession.request")
     def test_create_agent_does_not_hijack_existing_stream(self, mock_request: mock.Mock) -> None:
-        """Creating an agent named 'Test' should not hijack an existing '#test' channel.
+        """Creating an agent should not mutate existing channels.
 
-        Zulip channel names are case-insensitive. Dev realms often already have a "test"
-        channel seeded with sample topics/messages.
-
-        The agent provisioning logic must avoid moving that channel into the agent's folder.
+        Historically, agent provisioning created per-agent channel folders/streams.
+        In the Projects-first model, creating/attaching an agent should only ensure
+        the bot user exists and must not touch streams.
         """
 
         realm = get_realm("zulip")
@@ -64,10 +65,10 @@ class SmartyPantsFacadeTestCase(ZulipTestCase):
         )
         response_dict = self.assert_json_success(result)
 
-        stream_names = [s["name"] for s in response_dict["streams"]]
-
-        # We should NOT have claimed the pre-existing 'test' channel.
-        assert "test" not in [name.lower() for name in stream_names]
+        # New contract: agent provisioning returns the bot user id and does not
+        # create per-agent streams.
+        self.assertIn("zulip_bot_user_id", response_dict)
+        self.assertNotIn("streams", response_dict)
 
         # And the original stream should not have been moved.
         existing_stream.refresh_from_db()
@@ -161,6 +162,130 @@ class SmartyPantsFacadeTestCase(ZulipTestCase):
         self.assertEqual(response_dict.get("agentId"), "agent_1")
         self.assertEqual(response_dict.get("bindingId"), "binding_1")
         self.assertEqual(response_dict.get("zulip_bot_user_id"), 999)
+
+
+class SmartyPantsProjectsFacadeEndpointsTestCase(ZulipTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.realm = get_realm("zulip")
+        self.hamlet = self.example_user("hamlet")
+        check_add_user_group(self.realm, "Sponsors", [self.hamlet], acting_user=self.hamlet)
+
+    def test_create_project_creates_folder_and_stream(self) -> None:
+        self.login("hamlet")
+        result = self.client_post(
+            "/json/smarty_pants/projects",
+            {
+                "name": "Alpha",
+                "description": "Alpha project",
+                "is_private": "true",
+            },
+        )
+        payload = self.assert_json_success(result)
+
+        self.assertIn("stream_id", payload)
+        self.assertIn("folder_id", payload)
+        self.assertTrue(payload["created"])
+
+        folder = ChannelFolder.objects.get(id=payload["folder_id"])
+        self.assertEqual(folder.name, "Projects")
+        self.assertFalse(folder.is_archived)
+
+        stream = Stream.objects.get(id=payload["stream_id"])
+        self.assertEqual(stream.folder_id, folder.id)
+        self.assertTrue(stream.invite_only)
+
+    def test_create_project_idempotent(self) -> None:
+        self.login("hamlet")
+
+        first = self.assert_json_success(
+            self.client_post("/json/smarty_pants/projects", {"name": "Beta"})
+        )
+        second = self.assert_json_success(
+            self.client_post("/json/smarty_pants/projects", {"name": "Beta"})
+        )
+
+        self.assertEqual(first["stream_id"], second["stream_id"])
+        self.assertTrue(first["created"])
+        self.assertFalse(second["created"])
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_CONTROL_PLANE_BASE_URL": "http://example.com",
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.SmartyPantsControlPlaneSession.request")
+    def test_project_subscribe_unsubscribe_agent(self, mock_request: mock.Mock) -> None:
+        self.login("hamlet")
+
+        project_payload = self.assert_json_success(
+            self.client_post("/json/smarty_pants/projects", {"name": "Gamma"})
+        )
+        stream = Stream.objects.get(id=project_payload["stream_id"])
+
+        bot_user = do_create_user(
+            email="smarty-project-bot@zulip.testserver",
+            password=None,
+            realm=self.realm,
+            full_name="Smarty Project Bot",
+            bot_type=UserProfile.DEFAULT_BOT,
+            bot_owner=self.hamlet,
+            acting_user=self.hamlet,
+        )
+
+        agent_id = "agent_123"
+        list_response = mock.Mock()
+        list_response.status_code = 200
+        list_response.json.return_value = {
+            "result": "success",
+            "agents": [
+                {
+                    "agent": {"id": agent_id, "runtimeAgentId": "runtime-agent-123"},
+                    "binding": {"zulipBotUserId": bot_user.id, "disabledAt": None},
+                }
+            ],
+        }
+        mock_request.return_value = list_response
+
+        subscribe_result = self.client_post(
+            f"/json/smarty_pants/projects/{stream.id}/agents/{agent_id}",
+            {},
+        )
+        subscribe_payload = self.assert_json_success(subscribe_result)
+        self.assertTrue(subscribe_payload["subscribed"])
+
+        self.assertTrue(
+            Subscription.objects.filter(
+                user_profile=bot_user,
+                recipient_id=stream.recipient_id,
+                active=True,
+            ).exists()
+        )
+
+        # Idempotent subscribe.
+        subscribe_result = self.client_post(
+            f"/json/smarty_pants/projects/{stream.id}/agents/{agent_id}",
+            {},
+        )
+        subscribe_payload = self.assert_json_success(subscribe_result)
+        self.assertTrue(subscribe_payload["already_subscribed"])
+
+        unsubscribe_result = self.client_delete(
+            f"/json/smarty_pants/projects/{stream.id}/agents/{agent_id}"
+        )
+        unsubscribe_payload = self.assert_json_success(unsubscribe_result)
+        self.assertTrue(unsubscribe_payload["unsubscribed"])
+
+        self.assertTrue(
+            Subscription.objects.filter(
+                user_profile=bot_user,
+                recipient_id=stream.recipient_id,
+                active=False,
+            ).exists()
+        )
 
 
 class SmartyPantsMemoryEndpointsTestCase(ZulipTestCase):
