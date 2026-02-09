@@ -262,6 +262,9 @@ def do_create_realm(
     # is required to do so correctly.
     kwargs["push_notifications_enabled"] = sends_notifications_directly()
 
+    # Smarty Pants policy: keep realm onboarding email drips disabled by default.
+    kwargs["send_welcome_emails"] = False
+
     with transaction.atomic(durable=True):
         realm = Realm(string_id=string_id, name=name, **kwargs)
         if is_demo_organization:
@@ -293,6 +296,11 @@ def do_create_realm(
         RealmUserDefault.objects.create(
             realm=realm,
             email_address_visibility=get_email_address_visibility_default(realm.org_type),
+            # Keep email noise off by default.
+            enable_digest_emails=False,
+            enable_marketing_emails=False,
+            # Default to chat-style behavior.
+            enter_sends=True,
         )
 
         create_system_user_groups_for_realm(realm)
