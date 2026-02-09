@@ -353,18 +353,19 @@ def process_new_human_user(
     welcome_message_custom_text = realm.welcome_message_custom_text
     if prereg_user is not None and prereg_user.welcome_message_custom_text is not None:
         welcome_message_custom_text = prereg_user.welcome_message_custom_text
-    initial_direct_message_ids = send_initial_direct_messages_to_user(
-        user_profile,
-        realm_creation=realm_creation,
-        welcome_message_custom_text=welcome_message_custom_text,
-    )
-    message_id_list = [initial_direct_message_ids.welcome_bot_intro_message_id]
-    if initial_direct_message_ids.welcome_bot_custom_message_id is not None:
-        message_id_list.append(initial_direct_message_ids.welcome_bot_custom_message_id)
+    if settings.TUTORIAL_ENABLED:
+        initial_direct_message_ids = send_initial_direct_messages_to_user(
+            user_profile,
+            realm_creation=realm_creation,
+            welcome_message_custom_text=welcome_message_custom_text,
+        )
+        message_id_list = [initial_direct_message_ids.welcome_bot_intro_message_id]
+        if initial_direct_message_ids.welcome_bot_custom_message_id is not None:
+            message_id_list.append(initial_direct_message_ids.welcome_bot_custom_message_id)
 
-    UserMessage.objects.filter(user_profile=user_profile, message_id__in=message_id_list).update(
-        flags=F("flags").bitor(UserMessage.flags.starred)
-    )
+        UserMessage.objects.filter(user_profile=user_profile, message_id__in=message_id_list).update(
+            flags=F("flags").bitor(UserMessage.flags.starred)
+        )
 
     # The 'visibility_policy_banner' is only displayed to existing users.
     # Mark it as read for a new user.
