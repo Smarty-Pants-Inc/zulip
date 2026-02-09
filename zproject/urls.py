@@ -197,6 +197,8 @@ from zerver.views.smarty_pants import (
     list_agent_memory_blocks,
     list_smarty_pants_agents,
     pause_smarty_pants_agent,
+    s2s_smarty_pants_authz_check,
+    s2s_smarty_pants_tools_execute,
     set_smarty_pants_agent_budget,
     set_smarty_pants_memory,
     s2s_realm_branding,
@@ -938,6 +940,8 @@ urls += [
     path("api/internal/web_reload_clients", web_reload_clients),
     path("api/v1/events/internal", get_events_internal),
     path("api/s2s/smarty_pants/realm/branding", s2s_realm_branding),
+    path("api/s2s/smarty_pants/authz/check", s2s_smarty_pants_authz_check),
+    path("api/s2s/smarty_pants/tools/execute", s2s_smarty_pants_tools_execute),
 ]
 
 # Python Social Auth
