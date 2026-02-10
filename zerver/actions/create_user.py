@@ -647,8 +647,11 @@ def do_create_user(
     if realm_creation:
         from zerver.lib.onboarding import send_initial_realm_messages
 
+        # Our servers disable Zulip onboarding/tutorial content.
+        # Skip Welcome Bot's default onboarding stream messages when tutorials are disabled.
         with override_language(realm.default_language):
-            send_initial_realm_messages(realm)
+            if settings.TUTORIAL_ENABLED:
+                send_initial_realm_messages(realm)
 
     if bot_type is None:
         process_new_human_user(
