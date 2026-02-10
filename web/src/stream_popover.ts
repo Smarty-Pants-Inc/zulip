@@ -10,7 +10,6 @@ import render_unsubscribed_participants_warning_banner from "../templates/modal_
 import render_move_topic_to_stream from "../templates/move_topic_to_stream.hbs";
 import render_left_sidebar_stream_actions_popover from "../templates/popovers/left_sidebar/left_sidebar_stream_actions_popover.hbs";
 
-import * as agents_overlay_ui from "./agents_overlay_ui.ts";
 import * as blueslip from "./blueslip.ts";
 import type {Typeahead} from "./bootstrap_typeahead.ts";
 import * as browser_history from "./browser_history.ts";
@@ -143,7 +142,6 @@ function build_stream_popover(opts: {elt: HTMLElement; stream_id: number}): void
         has_unread_messages,
         show_go_to_channel_feed,
         show_go_to_list_of_topics,
-        show_ai_features: !user_settings.hide_ai_features,
     });
 
     popover_menus.toggle_popover_menu(elt, {
@@ -232,15 +230,6 @@ function build_stream_popover(opts: {elt: HTMLElement; stream_id: number}): void
                 void clipboard_handler.popover_copy_link_to_clipboard(instance, $(this));
             });
 
-            $popper.on("click", ".stream-popover-edit-project-memory", () => {
-                const sub = stream_popover_sub({currentTarget: $popper[0]!} as never);
-                agents_overlay_ui.launch({
-                    scope: "project",
-                    stream_id: sub.stream_id,
-                    stream_name: sub.name,
-                });
-                popover_menus.hide_current_popover_if_visible(instance);
-            });
         },
         onHidden(instance) {
             hide_stream_popover(instance);

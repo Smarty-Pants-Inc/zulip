@@ -6,7 +6,6 @@ import * as admin from "./admin.ts";
 import * as blueslip from "./blueslip.ts";
 import * as browser_history from "./browser_history.ts";
 import * as drafts_overlay_ui from "./drafts_overlay_ui.ts";
-import * as agents_overlay_ui from "./agents_overlay_ui.ts";
 import {Filter} from "./filter.ts";
 import * as hash_parser from "./hash_parser.ts";
 import * as hash_util from "./hash_util.ts";
@@ -485,10 +484,6 @@ function do_hashchange_overlay(old_hash: string | undefined): void {
         return;
     }
 
-    if (base === "agents") {
-        agents_overlay_ui.launch();
-        return;
-    }
 
     if (base === "settings") {
         settings.build_page();

@@ -14,7 +14,6 @@ import * as activity from "./activity.ts";
 import * as activity_ui from "./activity_ui.ts";
 import * as add_stream_options_popover from "./add_stream_options_popover.ts";
 import * as alert_words from "./alert_words.ts";
-import * as agents_overlay_ui from "./agents_overlay_ui.ts";
 import {all_messages_data} from "./all_messages_data.ts";
 import * as audible_notifications from "./audible_notifications.ts";
 import * as banners from "./banners.ts";
@@ -757,7 +756,6 @@ export async function initialize_everything(state_data) {
     });
     drafts.initialize_ui();
     drafts_overlay_ui.initialize();
-    agents_overlay_ui.initialize();
     // This needs to happen after activity_ui.initialize, so that user_filter
     // is defined. Also, must happen after people.initialize()
     onboarding_steps.initialize(state_data.onboarding_steps, {
