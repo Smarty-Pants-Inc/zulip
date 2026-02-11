@@ -1216,6 +1216,7 @@ def _tool_cp_project_agents_provision_defaults(*, realm: Realm, invoker: UserPro
         json_data={
             "realmId": str(realm.id),
             "realmName": realm.string_id,
+            "realmUrl": realm.url,
             "projectAgents": provisioned,
         },
     )
