@@ -1181,6 +1181,7 @@ def _tool_cp_project_agents_provision_defaults(*, realm: Realm, invoker: UserPro
         by_name[name.strip().lower()] = project
 
     provisioned: list[dict[str, Any]] = []
+    provisioned_public: list[dict[str, Any]] = []
     for channel_name in DEFAULT_PROJECT_AGENT_CHANNELS:
         project_row = by_name.get(channel_name)
         if project_row is None:
@@ -1202,11 +1203,22 @@ def _tool_cp_project_agents_provision_defaults(*, realm: Realm, invoker: UserPro
             raise ResourceNotFoundError(_("Channel not found."))
 
         bot_creds = _ensure_project_agent_bot_for_stream(realm=realm, stream=stream, invoker=invoker)
+
+        # Control plane provisioning needs botApiKey, but we should never return API keys
+        # in tool responses (they are secrets).
         provisioned.append(
             {
                 "streamId": stream.id,
                 "streamName": stream.name,
                 **bot_creds,
+            }
+        )
+        provisioned_public.append(
+            {
+                "streamId": stream.id,
+                "streamName": stream.name,
+                "botEmail": bot_creds["botEmail"],
+                "botUserId": bot_creds["botUserId"],
             }
         )
 
@@ -1222,7 +1234,7 @@ def _tool_cp_project_agents_provision_defaults(*, realm: Realm, invoker: UserPro
     )
 
     return {
-        "projects": provisioned,
+        "projects": provisioned_public,
         "controlPlane": control_plane_result,
     }
 
