@@ -29,8 +29,10 @@ from zerver.actions.default_streams import (
     do_remove_default_stream_group,
     do_remove_streams_from_default_stream_group,
 )
+from zerver.actions.create_user import do_create_user, do_reactivate_user
 from zerver.actions.invites import do_create_multiuse_invite_link
 from zerver.actions.streams import (
+    bulk_add_subscriptions,
     do_change_stream_description,
     do_change_stream_folder,
     do_change_stream_group_based_setting,
@@ -56,6 +58,7 @@ from zerver.lib.exceptions import AccessDeniedError, JsonableError, ResourceNotF
 from zerver.lib.outgoing_http import OutgoingSession
 from zerver.lib.response import json_success
 from zerver.lib.streams import create_stream_if_needed
+from zerver.lib.users import validate_short_name_and_construct_bot_email
 from zerver.lib.user_groups import get_recursive_group_members, is_user_in_group
 from zerver.models import (
     ChannelFolder,
@@ -73,6 +76,7 @@ SPONSORS_GROUP_NAME = "Sponsors"
 
 PROJECTS_FOLDER_NAME = "Projects"
 PROJECTS_FOLDER_DESCRIPTION = "Project channels managed by Smarty Pants."
+DEFAULT_PROJECT_AGENT_CHANNELS = ("smarty-code", "smarty-graph", "smarty-chat")
 
 # Convex control plane base URL (e.g. https://<deployment>.convex.site)
 SMARTY_PANTS_CONTROL_PLANE_BASE_URL_ENV_VAR = "SMARTY_PANTS_CONTROL_PLANE_BASE_URL"
@@ -1108,6 +1112,120 @@ def _tool_cp_agent_pause(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any
     )
 
 
+def _project_agent_short_name(channel_name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", channel_name.strip().lower()).strip("-")
+    if not slug:
+        raise JsonableError(_("Invalid channel name for provisioning project agent."))
+    return f"{slug}-agent"
+
+
+def _project_agent_full_name(channel_name: str) -> str:
+    pretty = " ".join(word.capitalize() for word in re.split(r"[-_\s]+", channel_name.strip()) if word)
+    if not pretty:
+        raise JsonableError(_("Invalid channel name for provisioning project agent."))
+    return f"Smarty {pretty} Agent"
+
+
+def _ensure_project_agent_bot_for_stream(*, realm: Realm, stream: Stream, invoker: UserProfile) -> dict[str, Any]:
+    short_name = _project_agent_short_name(stream.name)
+    full_name = _project_agent_full_name(stream.name)
+    _validated_short_name, email = validate_short_name_and_construct_bot_email(short_name, realm)
+
+    bot = UserProfile.objects.filter(realm=realm, delivery_email__iexact=email).order_by("-id").first()
+    if bot is not None:
+        if not bot.is_bot:
+            raise JsonableError(
+                _("Expected '{email}' to be a bot user, but found a human user.").format(email=email)
+            )
+        if not bot.is_active:
+            do_reactivate_user(bot, acting_user=invoker)
+    else:
+        bot = do_create_user(
+            email=email,
+            password=None,
+            realm=realm,
+            full_name=full_name,
+            bot_type=UserProfile.DEFAULT_BOT,
+            bot_owner=invoker,
+            acting_user=invoker,
+        )
+
+    if bot.full_name != full_name:
+        bot.full_name = full_name
+        bot.save(update_fields=["full_name"])
+
+    # Idempotently ensures the bot is subscribed without duplicating rows.
+    bulk_add_subscriptions(realm, [stream], [bot], acting_user=invoker)
+    bot.refresh_from_db(fields=["id", "delivery_email", "api_key"])
+
+    return {
+        "botEmail": bot.delivery_email,
+        "botUserId": bot.id,
+        "botApiKey": bot.api_key,
+    }
+
+
+def _tool_cp_project_agents_provision_defaults(*, realm: Realm, invoker: UserProfile) -> dict[str, Any]:
+    projects_listing = _tool_zulip_project_list(realm=realm)
+    listed_projects = projects_listing.get("projects")
+    if not isinstance(listed_projects, list):
+        listed_projects = []
+
+    by_name: dict[str, dict[str, Any]] = {}
+    for project in listed_projects:
+        if not isinstance(project, dict):
+            continue
+        name = project.get("name")
+        if not isinstance(name, str):
+            continue
+        by_name[name.strip().lower()] = project
+
+    provisioned: list[dict[str, Any]] = []
+    for channel_name in DEFAULT_PROJECT_AGENT_CHANNELS:
+        project_row = by_name.get(channel_name)
+        if project_row is None:
+            raise JsonableError(
+                _("Required project channel '{channel_name}' was not found in the Projects folder.").format(
+                    channel_name=channel_name
+                )
+            )
+
+        if bool(project_row.get("is_archived")):
+            raise JsonableError(
+                _("Required project channel '{channel_name}' is archived.").format(channel_name=channel_name)
+            )
+
+        stream_id = _coerce_int_param(project_row.get("stream_id"), field_name="stream_id")
+        try:
+            stream = Stream.objects.get(id=stream_id, realm=realm)
+        except Stream.DoesNotExist:
+            raise ResourceNotFoundError(_("Channel not found."))
+
+        bot_creds = _ensure_project_agent_bot_for_stream(realm=realm, stream=stream, invoker=invoker)
+        provisioned.append(
+            {
+                "streamId": stream.id,
+                "streamName": stream.name,
+                **bot_creds,
+            }
+        )
+
+    control_plane_result = call_control_plane(
+        method="POST",
+        path=CONTROL_PLANE_PROJECT_AGENTS_PROVISION_DEFAULTS_PATH,
+        json_data={
+            "realmId": str(realm.id),
+            "realmName": realm.string_id,
+            "projectAgents": provisioned,
+        },
+    )
+
+    return {
+        "projects": provisioned,
+        "controlPlane": control_plane_result,
+    }
+
+
 def _tool_cp_agent_budget_set(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
     agent_id = args.get("agentId") or args.get("agent_id")
     if not isinstance(agent_id, str) or not agent_id.strip():
@@ -1829,6 +1947,7 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         "cp.agent.pause",
         "cp.agent.budget.set",
         "cp.agent.archive",
+        "cp.project_agents.provision_defaults",
     }
 
     if tool in safe_tools:
@@ -1918,6 +2037,8 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         result = _tool_cp_agent_budget_set(realm=realm, args=args)
     elif tool == "cp.agent.archive":
         result = _tool_cp_agent_archive(realm=realm, args=args)
+    elif tool == "cp.project_agents.provision_defaults":
+        result = _tool_cp_project_agents_provision_defaults(realm=realm, invoker=invoker)
     elif tool == "cp.memory.get":
         result = _tool_cp_memory_get(realm=realm, args=args)
     elif tool == "cp.memory.set":
@@ -2014,6 +2135,7 @@ def call_control_plane(
 CONTROL_PLANE_ARCHIVE_AGENT_PATH = "/s2s/zulip/agents/archive"
 CONTROL_PLANE_PAUSE_AGENT_PATH = "/s2s/zulip/agents/pause"
 CONTROL_PLANE_SET_AGENT_BUDGET_PATH = "/s2s/zulip/agents/budget/set"
+CONTROL_PLANE_PROJECT_AGENTS_PROVISION_DEFAULTS_PATH = "/s2s/zulip/project_agents/provision_defaults"
 CONTROL_PLANE_MEMORY_GET_PATH = "/s2s/zulip/memory/get"
 CONTROL_PLANE_MEMORY_SET_PATH = "/s2s/zulip/memory/set"
 CONTROL_PLANE_MEMORY_BLOCKS_LIST_PATH = "/s2s/zulip/memory/blocks/list"
