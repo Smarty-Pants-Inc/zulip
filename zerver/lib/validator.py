@@ -468,6 +468,26 @@ def check_widget_content(widget_content: object) -> dict[str, Any]:
 
         raise ValidationError("unknown zform type: " + extra_data["type"])
 
+    if widget_type == "sp_ai":
+        # Smarty Pants POC widget type. We validate a minimal schema here,
+        # and let the client handle rendering.
+        checker = check_dict(
+            required_keys=[
+                ("version", check_int),
+                ("display", check_string_in({"card_only", "card_with_caption"})),
+                ("title", check_string),
+                ("status", check_string_in({"running", "ok", "error"})),
+            ],
+            optional_keys=[
+                ("caption", check_string),
+                ("tool", check_string),
+                ("input", check_string),
+                ("output", check_string),
+            ],
+        )
+        checker("extra_data", extra_data)
+        return widget_content
+
     raise ValidationError("unknown widget type: " + widget_type)
 
 

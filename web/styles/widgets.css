@@ -22,6 +22,117 @@
     }
 }
 
+.sp-ai-widget {
+    border: 1px solid var(--color-border-dropdown-widget-button);
+    background-color: var(--color-background-widget-button);
+    border-radius: 6px;
+    padding: 10px;
+    max-width: 100%;
+
+    .sp-ai-header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .sp-ai-title {
+        font-size: 1.0714em; /* 15px at 14px/em */
+        font-weight: 600;
+        flex: 1 1 auto;
+        min-width: 12ch;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-status {
+        flex: 0 0 auto;
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: var(--color-background-widget-button);
+    }
+
+    .sp-ai-status-running {
+        color: hsl(200deg 79% 30%);
+    }
+
+    .sp-ai-status-ok {
+        color: hsl(156deg 41% 35%);
+    }
+
+    .sp-ai-status-error {
+        color: hsl(1deg 45% 45%);
+    }
+
+    .sp-ai-caption {
+        margin-top: 4px;
+        color: var(--color-text-default);
+        opacity: 0.9;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-meta {
+        margin-top: 6px;
+        display: flex;
+        flex-flow: row wrap;
+        gap: 6px;
+        align-items: baseline;
+    }
+
+    .sp-ai-meta-key {
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .sp-ai-meta-val {
+        font-family: var(--monospace-font);
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-section {
+        margin-top: 8px;
+
+        summary {
+            display: flex;
+            flex-flow: row wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .sp-ai-copy {
+            flex: 0 0 auto;
+            border: 1px solid var(--color-border-dropdown-widget-button);
+            border-radius: 4px;
+            padding: 2px 8px;
+            background-color: var(--color-background-widget-button);
+            font-weight: 600;
+
+            &:hover {
+                filter: brightness(0.98);
+            }
+        }
+
+        .sp-ai-pre {
+            margin-top: 6px;
+            padding: 8px;
+            border-radius: 6px;
+            background-color: var(--color-background-widget-input);
+            font-family: var(--monospace-font);
+            font-size: 0.9285em; /* 13px at 14px/em */
+            line-height: 1.4;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            max-height: 240px;
+            overflow: auto;
+        }
+    }
+}
+
 .todo-widget {
     .todo-task-list-title-bar {
         flex: 1 1 auto;

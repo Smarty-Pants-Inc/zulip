@@ -37,8 +37,25 @@ export function get_message_ids(): number[] {
     return [...generic_widget_map.keys()];
 }
 
-function set_widget_in_message($row: JQuery, $widget_elem: JQuery): void {
+function set_widget_in_message($row: JQuery, $widget_elem: JQuery, any_data: AnyWidgetData): void {
     const $content_holder = $row.find(".message_content");
+
+    // For most widgets, we replace the message content entirely.
+    //
+    // For our agent-message POC, we want to test both "card-only" and
+    // "card + text" variants without changing the server payload shape.
+    if (any_data.widget_type === "sp_ai") {
+        const existing_text = $content_holder.text().trim();
+        if (existing_text.startsWith("/sp_ai")) {
+            // If this message was triggered via a /sp_ai command, the raw text is
+            // not useful to render alongside the card.
+            $content_holder.empty();
+        }
+
+        $content_holder.append($widget_elem);
+        return;
+    }
+
     $content_holder.empty().append($widget_elem);
 }
 
@@ -78,7 +95,7 @@ export function activate(in_opts: ActivateArguments): void {
         generic_widget_map.set(message.id, generic_widget);
     }
 
-    set_widget_in_message($row, $widget_elem);
+    set_widget_in_message($row, $widget_elem, any_data);
 
     // Replay any events that already happened.  (This is common
     // when the user opens a conversation with a poll that

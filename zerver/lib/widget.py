@@ -7,7 +7,7 @@ from zerver.models import Message, SubMessage
 
 
 def get_widget_data(content: str) -> tuple[str | None, Any]:
-    valid_widget_types = ["poll", "todo"]
+    valid_widget_types = ["poll", "todo", "sp_ai"]
     tokens = re.split(r"\s+|\n+", content)
 
     # tokens[0] will always exist
@@ -71,11 +71,35 @@ def parse_todo_extra_data(content: str) -> Any:
     return extra_data
 
 
+def parse_sp_ai_extra_data(content: str) -> Any:
+    """Parse extra_data for the /sp_ai POC widget.
+
+    We keep this intentionally forgiving so that malformed content
+    doesn't break message sending.
+    """
+
+    stripped = content.strip()
+    if stripped == "":
+        return {}
+
+    try:
+        data = json.loads(stripped)
+        if isinstance(data, dict):
+            return data
+        return {"value": data}
+    except Exception:
+        # Fall back to treating the remaining content as a title.
+        return {"title": stripped}
+
+
 def get_extra_data_from_widget_type(content: str, widget_type: str | None) -> Any:
     if widget_type == "poll":
         return parse_poll_extra_data(content)
-    else:
+
+    if widget_type == "todo":
         return parse_todo_extra_data(content)
+
+    return parse_sp_ai_extra_data(content)
 
 
 def do_widget_post_save_actions(send_request: SendMessageRequest) -> None:
