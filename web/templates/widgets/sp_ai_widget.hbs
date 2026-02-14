@@ -1,0 +1,37 @@
+<div class="sp-ai-widget" data-sp-ai-widget-version="{{version}}">
+    <div class="sp-ai-header">
+        <div class="sp-ai-title">{{title}}</div>
+        <div class="sp-ai-status sp-ai-status-{{status}}">{{status_label}}</div>
+    </div>
+
+    {{#if show_caption}}
+        <div class="sp-ai-caption">{{caption}}</div>
+    {{/if}}
+
+    {{#if show_tool}}
+        <div class="sp-ai-meta">
+            <span class="sp-ai-meta-key">Tool</span>
+            <span class="sp-ai-meta-val">{{tool}}</span>
+        </div>
+    {{/if}}
+
+    {{#if has_input}}
+        <details class="sp-ai-section">
+            <summary>
+                <span>Input</span>
+                <button class="sp-ai-copy" type="button" data-copy="input">Copy</button>
+            </summary>
+            <pre class="sp-ai-pre">{{input}}</pre>
+        </details>
+    {{/if}}
+
+    {{#if has_output}}
+        <details class="sp-ai-section" open>
+            <summary>
+                <span>Output</span>
+                <button class="sp-ai-copy" type="button" data-copy="output">Copy</button>
+            </summary>
+            <pre class="sp-ai-pre">{{output}}</pre>
+        </details>
+    {{/if}}
+</div>
