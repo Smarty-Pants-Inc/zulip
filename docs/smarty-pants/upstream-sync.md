@@ -26,6 +26,15 @@ This will:
 - merge `mirror/upstream-main` into `sp/main`
 - push both branches to `origin`
 
+## Upstream PR workflow
+
+When submitting a change upstream, we keep the same patch in `sp/main` until upstream resolves it.
+
+- Open an upstream PR (against `zulip/zulip`).
+- Immediately backport the patch into our fork (`sp/main`) via a small PR.
+- Once upstream merges an acceptable solution, drop the local patch during the next sync (or explicitly revert it).
+- If upstream rejects the change, decide whether to keep the patch locally or remove it.
+
 ## Keeping the patch stack clean
 
 - Prefer small PRs into `sp/main`.
