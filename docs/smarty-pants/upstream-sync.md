@@ -6,10 +6,10 @@ Goal: keep upstream merges routine and low-friction by maintaining a small, revi
 
 ## Branch model
 
-- `main`: mirror of upstream `main` (fast-forward only)
-- `sp/main`: Smarty Pants patch stack on top of `main`
+- `mirror/upstream-main`: mirror of upstream `main` (fast-forward only)
+- `sp/main`: Smarty Pants patch stack on top of `mirror/upstream-main`
 
-Guideline: land Smarty Pants changes into `sp/main` (not `main`).
+Guideline: land Smarty Pants changes into `sp/main` (keep the mirror branch fast-forwardable).
 
 ## Syncing upstream
 
@@ -22,8 +22,8 @@ From a clean working tree:
 This will:
 
 - fetch upstream `main`
-- fast-forward `main` to match upstream
-- merge `main` into `sp/main`
+- fast-forward `mirror/upstream-main` to match upstream
+- merge `mirror/upstream-main` into `sp/main`
 - push both branches to `origin`
 
 ## Keeping the patch stack clean
