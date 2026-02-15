@@ -4,8 +4,8 @@ set -euo pipefail
 # Sync this fork with upstream Zulip using a simple patch-stack model.
 #
 # Branch model:
-# - origin/main   : mirror of upstream/main (fast-forward only)
-# - origin/sp/main: Smarty Pants patch stack on top of origin/main
+# - origin/mirror/upstream-main : mirror of upstream/main (fast-forward only)
+# - origin/sp/main              : Smarty Pants patch stack on top of the mirror
 #
 # This script updates both branches locally and pushes them to origin.
 
@@ -14,7 +14,7 @@ UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
 UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
 
 ORIGIN_REMOTE="${ORIGIN_REMOTE:-origin}"
-MIRROR_BRANCH="${MIRROR_BRANCH:-main}"
+MIRROR_BRANCH="${MIRROR_BRANCH:-mirror/upstream-main}"
 PATCH_BRANCH="${PATCH_BRANCH:-sp/main}"
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -35,7 +35,12 @@ fi
 git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 
 # Update mirror branch (fast-forward only).
-git switch "$MIRROR_BRANCH"
+if git show-ref --verify --quiet "refs/heads/$MIRROR_BRANCH"; then
+  git switch "$MIRROR_BRANCH"
+else
+  git switch -c "$MIRROR_BRANCH" "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
+fi
+
 git merge --ff-only "$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
 git push "$ORIGIN_REMOTE" "$MIRROR_BRANCH"
 
