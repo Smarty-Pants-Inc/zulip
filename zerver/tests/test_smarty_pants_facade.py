@@ -223,3 +223,61 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             {(row["streamId"], row["botEmail"], row["botUserId"]) for row in project_rows},
         )
         self.assertEqual(mock_call_control_plane.call_count, 2)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.call_control_plane")
+    def test_cp_agents_index_allowed_for_sponsor(self, mock_call_control_plane: mock.Mock) -> None:
+        mock_call_control_plane.return_value = {"ok": True, "agents": []}
+
+        message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": message_id,
+            "tool": "cp.agents.index",
+            "args": {},
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/tools/execute",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        self.assert_json_success(result)
+        mock_call_control_plane.assert_called_once()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.call_control_plane")
+    def test_cp_letta_agents_retrieve_allowed_for_sponsor(self, mock_call_control_plane: mock.Mock) -> None:
+        mock_call_control_plane.return_value = {"ok": True, "id": "agent-123"}
+
+        message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": message_id,
+            "tool": "cp.letta.agents.retrieve",
+            "args": {"runtimeAgentId": "agent-123"},
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/tools/execute",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        self.assert_json_success(result)
+        mock_call_control_plane.assert_called_once()

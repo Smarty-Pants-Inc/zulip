@@ -1408,6 +1408,100 @@ def _tool_cp_memory_blocks_delete(*, args: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _tool_cp_agents_index(*, realm: Realm) -> dict[str, Any]:
+    return call_control_plane(
+        method="POST",
+        path=CONTROL_PLANE_AGENTS_INDEX_PATH,
+        json_data={"realmId": str(realm.id)},
+    )
+
+
+def _tool_cp_letta_agents_retrieve(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
+    runtime_agent_id = _coerce_optional_trimmed_string(
+        args.get("runtimeAgentId") or args.get("agentId") or args.get("agent_id"),
+        field_name="runtimeAgentId",
+    )
+    if runtime_agent_id is None:
+        raise JsonableError(_("The 'runtimeAgentId' parameter is required."))
+
+    return call_control_plane(
+        method="POST",
+        path=CONTROL_PLANE_LETTA_AGENTS_RETRIEVE_PATH,
+        json_data={"realmId": str(realm.id), "runtimeAgentId": runtime_agent_id},
+    )
+
+
+def _tool_cp_letta_runs_list(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
+    runtime_agent_id = _coerce_optional_trimmed_string(
+        args.get("runtimeAgentId") or args.get("agentId") or args.get("agent_id"),
+        field_name="runtimeAgentId",
+    )
+    if runtime_agent_id is None:
+        raise JsonableError(_("The 'runtimeAgentId' parameter is required."))
+
+    json_data: dict[str, Any] = {"realmId": str(realm.id), "runtimeAgentId": runtime_agent_id}
+    for k in ["limit", "after", "before", "order", "conversationId"]:
+        if k in args:
+            json_data[k] = args.get(k)
+
+    return call_control_plane(method="POST", path=CONTROL_PLANE_LETTA_RUNS_LIST_PATH, json_data=json_data)
+
+
+def _tool_cp_letta_runs_retrieve(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
+    run_id = _coerce_optional_trimmed_string(args.get("runId") or args.get("run_id"), field_name="runId")
+    runtime_agent_id = _coerce_optional_trimmed_string(
+        args.get("runtimeAgentId") or args.get("agentId") or args.get("agent_id"),
+        field_name="runtimeAgentId",
+    )
+    if run_id is None:
+        raise JsonableError(_("The 'runId' parameter is required."))
+    if runtime_agent_id is None:
+        raise JsonableError(_("The 'runtimeAgentId' parameter is required."))
+
+    return call_control_plane(
+        method="POST",
+        path=CONTROL_PLANE_LETTA_RUNS_RETRIEVE_PATH,
+        json_data={"realmId": str(realm.id), "runtimeAgentId": runtime_agent_id, "runId": run_id},
+    )
+
+
+def _tool_cp_letta_runs_usage_retrieve(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
+    run_id = _coerce_optional_trimmed_string(args.get("runId") or args.get("run_id"), field_name="runId")
+    runtime_agent_id = _coerce_optional_trimmed_string(
+        args.get("runtimeAgentId") or args.get("agentId") or args.get("agent_id"),
+        field_name="runtimeAgentId",
+    )
+    if run_id is None:
+        raise JsonableError(_("The 'runId' parameter is required."))
+    if runtime_agent_id is None:
+        raise JsonableError(_("The 'runtimeAgentId' parameter is required."))
+
+    return call_control_plane(
+        method="POST",
+        path=CONTROL_PLANE_LETTA_RUNS_USAGE_RETRIEVE_PATH,
+        json_data={"realmId": str(realm.id), "runtimeAgentId": runtime_agent_id, "runId": run_id},
+    )
+
+
+def _tool_cp_letta_runs_steps_list(*, realm: Realm, args: dict[str, Any]) -> dict[str, Any]:
+    run_id = _coerce_optional_trimmed_string(args.get("runId") or args.get("run_id"), field_name="runId")
+    runtime_agent_id = _coerce_optional_trimmed_string(
+        args.get("runtimeAgentId") or args.get("agentId") or args.get("agent_id"),
+        field_name="runtimeAgentId",
+    )
+    if run_id is None:
+        raise JsonableError(_("The 'runId' parameter is required."))
+    if runtime_agent_id is None:
+        raise JsonableError(_("The 'runtimeAgentId' parameter is required."))
+
+    json_data: dict[str, Any] = {"realmId": str(realm.id), "runtimeAgentId": runtime_agent_id, "runId": run_id}
+    for k in ["limit", "after"]:
+        if k in args:
+            json_data[k] = args.get(k)
+
+    return call_control_plane(method="POST", path=CONTROL_PLANE_LETTA_RUNS_STEPS_LIST_PATH, json_data=json_data)
+
+
 def _invite_as_from_string(role: str) -> int:
     r = (role or "").strip().lower()
     # Values should match PreregistrationUser.INVITE_AS.
@@ -1917,6 +2011,13 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         "cp.memory.blocks.create",
         "cp.memory.blocks.update",
         "cp.memory.blocks.delete",
+        # Control plane (agent observatory / inspect)
+        "cp.agents.index",
+        "cp.letta.agents.retrieve",
+        "cp.letta.runs.list",
+        "cp.letta.runs.retrieve",
+        "cp.letta.runs.usage.retrieve",
+        "cp.letta.runs.steps.list",
     }
 
     dangerous_tools = {
@@ -2064,6 +2165,18 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         result = _tool_cp_memory_blocks_update(args=args)
     elif tool == "cp.memory.blocks.delete":
         result = _tool_cp_memory_blocks_delete(args=args)
+    elif tool == "cp.agents.index":
+        result = _tool_cp_agents_index(realm=realm)
+    elif tool == "cp.letta.agents.retrieve":
+        result = _tool_cp_letta_agents_retrieve(realm=realm, args=args)
+    elif tool == "cp.letta.runs.list":
+        result = _tool_cp_letta_runs_list(realm=realm, args=args)
+    elif tool == "cp.letta.runs.retrieve":
+        result = _tool_cp_letta_runs_retrieve(realm=realm, args=args)
+    elif tool == "cp.letta.runs.usage.retrieve":
+        result = _tool_cp_letta_runs_usage_retrieve(realm=realm, args=args)
+    elif tool == "cp.letta.runs.steps.list":
+        result = _tool_cp_letta_runs_steps_list(realm=realm, args=args)
     else:  # nocoverage
         raise JsonableError(_("Unsupported tool: {tool_name}").format(tool_name=tool))
 
@@ -2155,6 +2268,13 @@ CONTROL_PLANE_MEMORY_BLOCKS_LIST_PATH = "/s2s/zulip/memory/blocks/list"
 CONTROL_PLANE_MEMORY_BLOCKS_CREATE_PATH = "/s2s/zulip/memory/blocks/create"
 CONTROL_PLANE_MEMORY_BLOCKS_UPDATE_PATH = "/s2s/zulip/memory/blocks/update"
 CONTROL_PLANE_MEMORY_BLOCKS_DELETE_PATH = "/s2s/zulip/memory/blocks/delete"
+
+CONTROL_PLANE_AGENTS_INDEX_PATH = "/s2s/zulip/agents/index"
+CONTROL_PLANE_LETTA_AGENTS_RETRIEVE_PATH = "/s2s/zulip/letta/agents/retrieve"
+CONTROL_PLANE_LETTA_RUNS_LIST_PATH = "/s2s/zulip/letta/runs/list"
+CONTROL_PLANE_LETTA_RUNS_RETRIEVE_PATH = "/s2s/zulip/letta/runs/retrieve"
+CONTROL_PLANE_LETTA_RUNS_USAGE_RETRIEVE_PATH = "/s2s/zulip/letta/runs/usage/retrieve"
+CONTROL_PLANE_LETTA_RUNS_STEPS_LIST_PATH = "/s2s/zulip/letta/runs/steps/list"
 
 
 def _coerce_optional_number(value: object) -> int | float | None:
