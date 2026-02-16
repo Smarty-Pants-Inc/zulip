@@ -3,12 +3,16 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import timedelta
+from hashlib import sha256
 from typing import Any
 from urllib.parse import urljoin
 
 import requests
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
+from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -82,6 +86,11 @@ DEFAULT_PROJECT_AGENT_CHANNELS = ("smarty-code", "smarty-graph", "smarty-chat")
 SMARTY_PANTS_CONTROL_PLANE_BASE_URL_ENV_VAR = "SMARTY_PANTS_CONTROL_PLANE_BASE_URL"
 # Shared secret validated by Convex `checkZulipFacadeAuth`.
 SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR = "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET"
+
+SMARTY_PANTS_S2S_INVOCATION_FRESHNESS_WINDOW = timedelta(minutes=10)
+SMARTY_PANTS_S2S_IDEMPOTENCY_TTL_SECONDS = 15 * 60
+SMARTY_PANTS_S2S_IDEMPOTENCY_CACHE_VERSION = 1
+
 
 class SmartyPantsControlPlaneSession(OutgoingSession):
     def __init__(self, shared_secret: str) -> None:
@@ -390,6 +399,23 @@ def _parse_args_object(value: object) -> dict[str, Any]:
             return parsed
         raise JsonableError(_("The 'args' parameter must be a JSON object."))
     raise JsonableError(_("The 'args' parameter must be an object."))
+
+
+def _normalize_tool_args_for_cache(args: dict[str, Any]) -> str:
+    # Deterministic JSON serialization allows semantically identical requests
+    # to share the same idempotency cache key.
+    return json.dumps(args, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def _s2s_tools_execute_cache_key(
+    *, realm_id: int, invoker_message_id: int, tool: str, normalized_args: str
+) -> str:
+    key_payload = "|".join([str(realm_id), str(invoker_message_id), tool, normalized_args])
+    digest = sha256(key_payload.encode()).hexdigest()
+    return (
+        f"smarty_pants:s2s_tools_execute:v{SMARTY_PANTS_S2S_IDEMPOTENCY_CACHE_VERSION}:"
+        f"{realm_id}:{invoker_message_id}:{digest}"
+    )
 
 
 @csrf_exempt
@@ -1973,12 +1999,25 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         raise JsonableError(_("Invoker must be a human user (not a bot)."))
 
     try:
-        message = Message.objects.only("id", "sender_id", "realm_id").get(id=invoker_message_id, realm_id=realm.id)
+        message = Message.objects.only("id", "sender_id", "realm_id", "date_sent").get(
+            id=invoker_message_id, realm_id=realm.id
+        )
     except Message.DoesNotExist:
         raise ResourceNotFoundError(_("Message not found."))
 
     if message.sender_id != invoker.id:
         raise AccessDeniedError()
+
+    if timezone_now() - message.date_sent > SMARTY_PANTS_S2S_INVOCATION_FRESHNESS_WINDOW:
+        raise JsonableError(_("Invoker message is too old."))
+
+    normalized_args = _normalize_tool_args_for_cache(args)
+    cache_key = _s2s_tools_execute_cache_key(
+        realm_id=realm.id,
+        invoker_message_id=invoker_message_id,
+        tool=tool,
+        normalized_args=normalized_args,
+    )
 
     is_admin = _is_realm_admin_user(invoker)
     is_sponsor = _is_sponsor_user(invoker)
@@ -2060,6 +2099,21 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
             raise AccessDeniedError()
     else:
         raise JsonableError(_("Unsupported tool: {tool_name}").format(tool_name=tool))
+
+    cached_payload = cache.get(cache_key)
+    if isinstance(cached_payload, dict):
+        cached_tool = cached_payload.get("tool")
+        cached_result = cached_payload.get("result")
+        if isinstance(cached_tool, str):
+            return json_success(
+                request,
+                data={
+                    "ok": True,
+                    "tool": cached_tool,
+                    "result": cached_result,
+                    "deduped": True,
+                },
+            )
 
     if tool == "zulip.project.create":
         result = _tool_zulip_project_create(realm=realm, invoker=invoker, args=args)
@@ -2168,14 +2222,19 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     else:  # nocoverage
         raise JsonableError(_("Unsupported tool: {tool_name}").format(tool_name=tool))
 
-    return json_success(
-        request,
-        data={
-            "ok": True,
-            "tool": tool,
-            "result": result,
-        },
+    response_data = {
+        "ok": True,
+        "tool": tool,
+        "result": result,
+        "deduped": False,
+    }
+    cache.set(
+        cache_key,
+        {"tool": tool, "result": result},
+        timeout=SMARTY_PANTS_S2S_IDEMPOTENCY_TTL_SECONDS,
     )
+
+    return json_success(request, data=response_data)
 
 
 def _control_plane_url(base_url: str, path: str) -> str:

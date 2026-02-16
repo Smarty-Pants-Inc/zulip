@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 from unittest import mock
 
 import orjson
+import time_machine
+from django.core.cache import cache
+from django.utils.timezone import now as timezone_now
 
 from zerver.lib.test_classes import ZulipTestCase
 from zerver.models import Recipient, Subscription
@@ -110,6 +114,10 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     def _headers(self) -> dict[str, str]:
         return {"x-smarty-pants-secret": "test-secret"}
 
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
     @mock.patch.dict(
         os.environ,
         {
@@ -186,6 +194,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
         )
         first_json = self.assert_json_success(first)
         self.assertEqual(first_json["tool"], "cp.project_agents.provision_defaults")
+        self.assertEqual(first_json["deduped"], False)
         project_rows = first_json["result"]["projects"]
         self.assert_length(project_rows, 3)
 
@@ -222,7 +231,8 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             {(row["streamId"], row["botEmail"], row["botUserId"]) for row in second_rows},
             {(row["streamId"], row["botEmail"], row["botUserId"]) for row in project_rows},
         )
-        self.assertEqual(mock_call_control_plane.call_count, 2)
+        self.assertEqual(second_json["deduped"], True)
+        self.assertEqual(mock_call_control_plane.call_count, 1)
 
     @mock.patch.dict(
         os.environ,
@@ -250,8 +260,85 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             content_type="application/json",
             headers=self._headers(),
         )
-        self.assert_json_success(result)
+        response_json = self.assert_json_success(result)
+        self.assertEqual(response_json["deduped"], False)
         mock_call_control_plane.assert_called_once()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.call_control_plane")
+    def test_s2s_tools_execute_rejects_old_invoker_message(self, mock_call_control_plane: mock.Mock) -> None:
+        message_id = self.send_stream_message(self.admin, "Denmark", topic_name="sp")
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.admin.id,
+            "invoker_message_id": message_id,
+            "tool": "cp.agents.index",
+            "args": {},
+        }
+
+        with time_machine.travel(timezone_now() + timedelta(minutes=11), tick=False):
+            result = self.client_post(
+                "/api/s2s/smarty_pants/tools/execute",
+                orjson.dumps(payload),
+                content_type="application/json",
+                headers=self._headers(),
+            )
+
+        self.assert_json_error(result, "Invoker message is too old.")
+        mock_call_control_plane.assert_not_called()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.call_control_plane")
+    def test_s2s_tools_execute_idempotency_normalizes_args(self, mock_call_control_plane: mock.Mock) -> None:
+        mock_call_control_plane.return_value = {"ok": True, "agents": [{"id": "a1"}]}
+
+        message_id = self.send_stream_message(self.admin, "Denmark", topic_name="sp")
+        payload_one = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.admin.id,
+            "invoker_message_id": message_id,
+            "tool": "cp.letta.runs.list",
+            "args": {"z": 1, "a": {"c": 3, "b": 2}},
+        }
+        payload_two = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.admin.id,
+            "invoker_message_id": message_id,
+            "tool": "cp.letta.runs.list",
+            "args": {"a": {"b": 2, "c": 3}, "z": 1},
+        }
+
+        first = self.client_post(
+            "/api/s2s/smarty_pants/tools/execute",
+            orjson.dumps(payload_one),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        first_json = self.assert_json_success(first)
+        self.assertEqual(first_json["deduped"], False)
+
+        second = self.client_post(
+            "/api/s2s/smarty_pants/tools/execute",
+            orjson.dumps(payload_two),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        second_json = self.assert_json_success(second)
+        self.assertEqual(second_json["deduped"], True)
+        self.assertEqual(second_json["result"], first_json["result"])
+        self.assertEqual(mock_call_control_plane.call_count, 1)
 
     @mock.patch.dict(
         os.environ,
