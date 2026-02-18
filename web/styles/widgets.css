@@ -99,11 +99,11 @@
 /* ZForm choices widget (card style). */
 .widget-choices.sp-widget-card {
     & .sp-widget-choice-list {
-        margin: 8px 0 0;
+        margin: 10px 0 0;
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
     }
 
     & .sp-widget-choice {
@@ -111,22 +111,23 @@
         padding: 0;
         display: flex;
         flex-flow: row wrap;
-        align-items: baseline;
-        gap: 8px;
+        align-items: center;
+        gap: 10px;
     }
 
     & .sp-widget-choice-btn {
         flex: 0 0 auto;
+        width: 34px;
         height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border: 1px solid var(--color-border-dropdown-widget-button);
         border-radius: 8px;
-        padding: 0 12px;
+        padding: 0;
         background-color: var(--color-background-widget-button);
         color: var(--color-text-default);
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.857em;
         line-height: 1;
         cursor: pointer;
@@ -146,6 +147,102 @@
         opacity: 0.8;
         line-height: 1.4;
     }
+}
+
+/* Poll/Todo widgets: unify list row styling with zform choices. */
+.sp-widget-card.poll-widget ul.poll-widget,
+.sp-widget-card.todo-widget ul.todo-widget {
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sp-widget-card.poll-widget ul.poll-widget > li,
+.sp-widget-card.todo-widget ul.todo-widget > li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sp-widget-card.poll-widget .poll-option-label,
+.sp-widget-card.todo-widget label.checkbox {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Leading control (poll vote count) */
+.sp-widget-card.poll-widget .poll-vote {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border: 1px solid var(--color-border-dropdown-widget-button);
+    border-radius: 8px;
+    background-color: var(--color-background-widget-button);
+    color: var(--color-text-default);
+    font-weight: 800;
+    font-size: 0.857em;
+    line-height: 1;
+
+    &:hover {
+        filter: brightness(0.98);
+    }
+
+    &:focus {
+        outline: 0;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.sp-widget-card.poll-widget .current-user-vote {
+    background-color: color-mix(in srgb, #22c55e 10%, var(--color-background-widget-button));
+    border-color: color-mix(in srgb, #22c55e 35%, var(--color-border-dropdown-widget-button));
+    color: color-mix(in srgb, #22c55e 70%, var(--color-text-default));
+}
+
+.sp-widget-card.poll-widget .poll-option-text {
+    font-weight: 600;
+}
+
+.sp-widget-card.poll-widget .poll-names {
+    opacity: 0.75;
+}
+
+/* Leading control (todo checkbox) */
+.sp-widget-card.todo-widget label.checkbox {
+    /* Override legacy baseline alignment. */
+    align-items: center;
+}
+
+.sp-widget-card.todo-widget label.checkbox input[type="checkbox"] ~ .custom-checkbox {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--color-border-dropdown-widget-button);
+    border-radius: 8px;
+    background-color: var(--color-background-widget-button);
+    background-image: none;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 70%;
+}
+
+.sp-widget-card.todo-widget label.checkbox input[type="checkbox"]:checked ~ .custom-checkbox {
+    background-image: url("../images/checkbox-white.svg");
+    background-color: color-mix(in srgb, #22c55e 12%, var(--color-background-widget-button));
+    border-color: color-mix(in srgb, #22c55e 35%, var(--color-border-dropdown-widget-button));
+}
+
+.sp-widget-card.todo-widget label.checkbox input[type="checkbox"]:not(:checked):hover ~ .custom-checkbox {
+    background-color: color-mix(in srgb, var(--color-background-widget-button) 80%, #fff);
 }
 
 .sp-ai-widget {
