@@ -191,6 +191,7 @@ from zerver.views.smarty_pants import (
     s2s_smarty_pants_authz_check,
     s2s_smarty_pants_messages_purge_topic,
     s2s_smarty_pants_messages_send_stream_as_user,
+    s2s_smarty_pants_messages_send_stream_topic_batch,
     s2s_smarty_pants_tools_execute,
 )
 from zerver.views.storage import get_storage, remove_storage, update_storage
@@ -904,6 +905,10 @@ urls += [
     path(
         "api/s2s/smarty_pants/messages/send_stream_as_user",
         s2s_smarty_pants_messages_send_stream_as_user,
+    ),
+    path(
+        "api/s2s/smarty_pants/messages/send_stream_topic_batch",
+        s2s_smarty_pants_messages_send_stream_topic_batch,
     ),
     path(
         "api/s2s/smarty_pants/messages/purge_topic",
