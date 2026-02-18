@@ -217,6 +217,84 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
         },
         clear=False,
     )
+    def test_s2s_send_stream_topic_batch_allows_sponsor_self_and_bot(self) -> None:
+        invoker_message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        denmark = Stream.objects.get(name="Denmark", realm=self.realm)
+        bot = self.create_test_bot("s2s-bot", self.sponsor)
+
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": invoker_message_id,
+            "stream_id": denmark.id,
+            "topic": "sp",
+            "messages": [
+                {
+                    "sender_user_id": self.sponsor.id,
+                    "content": "hello from s2s batch (self)",
+                },
+                {
+                    "sender_user_id": bot.id,
+                    "content": "hello from s2s batch (bot)",
+                },
+            ],
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/messages/send_stream_topic_batch",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        response_json = self.assert_json_success(result)
+        self.assertTrue(response_json["ok"])
+        self.assertEqual(len(response_json["results"]), 2)
+
+        msg0 = Message.objects.get(id=response_json["results"][0]["id"], realm_id=self.realm.id)
+        msg1 = Message.objects.get(id=response_json["results"][1]["id"], realm_id=self.realm.id)
+        self.assertEqual(msg0.sender_id, self.sponsor.id)
+        self.assertEqual(msg1.sender_id, bot.id)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    def test_s2s_send_stream_topic_batch_rejects_sponsor_impersonation(self) -> None:
+        invoker_message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        denmark = Stream.objects.get(name="Denmark", realm=self.realm)
+
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": invoker_message_id,
+            "stream_id": denmark.id,
+            "topic": "sp",
+            "messages": [
+                {
+                    "sender_user_id": self.admin.id,
+                    "content": "spoof",
+                },
+            ],
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/messages/send_stream_topic_batch",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        self.assertEqual(result.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
     @mock.patch("zerver.views.smarty_pants.call_control_plane")
     def test_project_agents_provision_defaults_requires_admin(self, mock_call_control_plane: mock.Mock) -> None:
         message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")

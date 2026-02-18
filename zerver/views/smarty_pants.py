@@ -2407,6 +2407,209 @@ def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpR
 
 
 @csrf_exempt
+def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> HttpResponse:
+    """Send a batch of messages into a single stream/topic.
+
+    This avoids API rate limits by performing the work server-side.
+
+    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+
+    POST body (form or JSON):
+      - realm_id
+      - invoker_user_id
+      - invoker_message_id
+      - stream_id
+      - topic
+      - messages: list of {sender_user_id, content, date_sent?, external_id?}
+
+    Anti-spoof:
+      - invoker_message_id must exist in the realm and be sent by invoker_user_id.
+      - invoker_user_id must be an active, non-bot user in the realm.
+
+    Authorization:
+      - invoker must be admin or sponsor.
+      - non-admin invokers may only send as themselves or as bots.
+
+    Response:
+      - ok: bool
+      - results: list of per-message results in input order
+        - {ok: true, id: int, external_id?: str}
+        - {ok: false, error: str, external_id?: str}
+    """
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
+
+    realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
+    invoker_user_id = _coerce_int_param(
+        payload.get("invoker_user_id") or payload.get("invokerUserId"),
+        field_name="invoker_user_id",
+    )
+    invoker_message_id = _coerce_int_param(
+        payload.get("invoker_message_id") or payload.get("invokerMessageId"),
+        field_name="invoker_message_id",
+    )
+    stream_id = _coerce_int_param(
+        payload.get("stream_id") or payload.get("streamId"),
+        field_name="stream_id",
+    )
+
+    topic = payload.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        raise JsonableError(_("The 'topic' parameter is required."))
+    topic = topic.strip()
+
+    messages_payload = payload.get("messages")
+    if not isinstance(messages_payload, list) or not messages_payload:
+        raise JsonableError(_("The 'messages' parameter must be a non-empty list."))
+
+    max_batch_size = 100
+    if len(messages_payload) > max_batch_size:
+        raise JsonableError(
+            _("Too many messages in batch (max {max_batch_size}).").format(max_batch_size=max_batch_size)
+        )
+
+    # Validate invoker + proof-of-identity message.
+    try:
+        invoker = get_user_profile_by_id_in_realm(invoker_user_id, realm)
+    except UserProfile.DoesNotExist:
+        raise ResourceNotFoundError(_("Invoker not found."))
+
+    if not invoker.is_active:
+        raise JsonableError(_("Invoker is deactivated."))
+    if invoker.is_bot:
+        raise JsonableError(_("Invoker must be a human user (not a bot)."))
+
+    try:
+        proof = Message.objects.only("id", "sender_id", "realm_id").get(id=invoker_message_id, realm_id=realm.id)
+    except Message.DoesNotExist:
+        raise ResourceNotFoundError(_("Message not found."))
+
+    if proof.sender_id != invoker.id:
+        raise AccessDeniedError()
+
+    is_admin = _is_realm_admin_user(invoker)
+    is_sponsor = _is_sponsor_user(invoker)
+    if not (is_admin or is_sponsor):
+        raise AccessDeniedError()
+
+    try:
+        stream = Stream.objects.get(id=stream_id, realm=realm)
+    except Stream.DoesNotExist:
+        raise ResourceNotFoundError(_("Stream not found."))
+
+    # Normalize and validate messages first so auth errors don't partially write.
+    normalized: list[dict[str, Any]] = []
+    senders: dict[int, UserProfile] = {}
+    for idx, raw in enumerate(messages_payload):
+        if not isinstance(raw, dict):
+            raise JsonableError(_("Message at index {idx} must be an object.").format(idx=idx))
+
+        sender_user_id = _coerce_int_param(
+            raw.get("sender_user_id") or raw.get("senderUserId"),
+            field_name=f"messages[{idx}].sender_user_id",
+        )
+
+        content = raw.get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise JsonableError(_("Message at index {idx} has empty content.").format(idx=idx))
+        content = content.strip()
+
+        date_sent_raw = raw.get("date_sent") or raw.get("dateSent")
+        date_sent: float | None = None
+        if date_sent_raw is not None:
+            try:
+                date_sent = float(date_sent_raw)
+            except Exception:
+                raise JsonableError(_("Message at index {idx} has invalid date_sent.").format(idx=idx))
+
+        external_id = raw.get("external_id") or raw.get("externalId")
+        if external_id is not None and not isinstance(external_id, str):
+            raise JsonableError(_("Message at index {idx} has invalid external_id.").format(idx=idx))
+
+        if sender_user_id not in senders:
+            try:
+                sender = get_user_profile_by_id_in_realm(sender_user_id, realm)
+            except UserProfile.DoesNotExist:
+                raise ResourceNotFoundError(_("Sender not found."))
+
+            if not sender.is_active:
+                raise JsonableError(_("Sender is deactivated."))
+
+            if not is_admin:
+                # Sponsors may not impersonate other humans.
+                if sender.id != invoker.id and not sender.is_bot:
+                    raise AccessDeniedError()
+
+            senders[sender_user_id] = sender
+
+        normalized.append(
+            {
+                "sender_user_id": sender_user_id,
+                "content": content,
+                "date_sent": date_sent,
+                "external_id": external_id,
+            }
+        )
+
+    results: list[dict[str, Any]] = []
+    client = get_client("smarty-pants-s2s")
+
+    for msg in normalized:
+        sender = senders[msg["sender_user_id"]]
+        try:
+            sent = check_send_message(
+                sender=sender,
+                client=client,
+                recipient_type_name="stream",
+                message_to=[stream.id],
+                topic_name=topic,
+                message_content=msg["content"],
+                realm=realm,
+                forged=msg["date_sent"] is not None,
+                forged_timestamp=msg["date_sent"],
+                forwarder_user_profile=invoker,
+                read_by_sender=False,
+            )
+        except Exception as e:
+            error = f"{type(e).__name__}: {e}"
+            results.append(
+                {
+                    "ok": False,
+                    "error": error,
+                    "external_id": msg.get("external_id"),
+                }
+            )
+            return json_success(
+                request,
+                data={
+                    "ok": False,
+                    "results": results,
+                    "error": error,
+                },
+            )
+
+        results.append(
+            {
+                "ok": True,
+                "id": sent.message_id,
+                "external_id": msg.get("external_id"),
+            }
+        )
+
+    return json_success(
+        request,
+        data={
+            "ok": True,
+            "results": results,
+        },
+    )
+
+
+@csrf_exempt
 def s2s_smarty_pants_messages_purge_topic(request: HttpRequest) -> HttpResponse:
     """Delete all messages in a given stream/topic.
 
