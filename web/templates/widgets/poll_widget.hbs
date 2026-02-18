@@ -1,18 +1,35 @@
-<div class="poll-widget">
-    <div class="poll-widget-header-area">
-        <h4 class="poll-question-header"></h4>
-        <i class="fa fa-pencil poll-edit-question"></i>
-        <div class="poll-question-bar">
-            <input type="text" class="poll-question" placeholder="{{t 'Add question'}}" />
-            <button class="poll-question-remove"><i class="fa fa-remove"></i></button>
-            <button class="poll-question-check"><i class="fa fa-check"></i></button>
+<div class="poll-widget sp-widget-card sp-widget-poll">
+    <div class="poll-widget-header-area sp-widget-header">
+        <div class="sp-widget-title-wrap">
+            <div class="sp-widget-title-line">
+                <h4 class="poll-question-header sp-widget-title"></h4>
+                <button class="sp-widget-icon-btn poll-edit-question" type="button" aria-label="Edit question">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="sp-widget-pills">
+                <span class="sp-widget-pill">Poll</span>
+            </div>
         </div>
     </div>
+
+    <div class="poll-question-bar">
+        <input type="text" class="poll-question" placeholder="{{t 'Add question'}}" />
+        <button class="sp-widget-icon-btn poll-question-remove" type="button" aria-label="Cancel">
+            <i class="fa fa-remove" aria-hidden="true"></i>
+        </button>
+        <button class="sp-widget-icon-btn poll-question-check" type="button" aria-label="Save">
+            <i class="fa fa-check" aria-hidden="true"></i>
+        </button>
+    </div>
+
     <div class="poll-please-wait">
         {{t 'We are about to have a poll.  Please wait for the question.'}}
     </div>
-    <ul class="poll-widget">
-    </ul>
+
+    <ul class="poll-widget"></ul>
+
     <div class="poll-option-bar">
         <input type="text" class="poll-option" placeholder="{{t 'New option'}}" />
         <button class="poll-option">{{t "Add option" }}</button>

@@ -1,11 +1,23 @@
-<div class="widget-choices">
-    <div class="widget-choices-heading">{{ heading }}</div>
-    <ul>
+<div class="widget-choices sp-widget-card sp-widget-zform">
+    <div class="sp-widget-header">
+        <div class="sp-widget-title-wrap">
+            <div class="sp-widget-title-line">
+                <h4 class="sp-widget-title">{{ heading }}</h4>
+            </div>
+
+            <div class="sp-widget-pills">
+                <span class="sp-widget-pill">Choices</span>
+            </div>
+        </div>
+    </div>
+
+    <ul class="sp-widget-choice-list">
         {{#each choices}}
-            <li>
-                <button data-idx="{{ this.idx }}">{{ this.short_name }}</button>
-                &nbsp;
-                {{ this.long_name }}
+            <li class="sp-widget-choice">
+                <button class="sp-widget-choice-btn" type="button" data-idx="{{ this.idx }}">
+                    {{ this.short_name }}
+                </button>
+                <span class="sp-widget-choice-label">{{ this.long_name }}</span>
             </li>
         {{/each}}
     </ul>

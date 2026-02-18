@@ -40,10 +40,11 @@ export function activate(opts: {
         const $elem = $(html);
 
         $elem.find("button").on("click", (e) => {
+            e.preventDefault();
             e.stopPropagation();
 
             // Grab our index from the markup.
-            const idx = Number.parseInt($(e.target).attr("data-idx")!, 10);
+            const idx = Number.parseInt($(e.currentTarget).attr("data-idx")!, 10);
 
             // Use the index from the markup to dereference our
             // data structure.
@@ -57,7 +58,8 @@ export function activate(opts: {
 
     function render(): void {
         if (data.type === "choices") {
-            $outer_elem.html(make_choices(data).html());
+            // Preserve the template root element so its styles apply.
+            $outer_elem.empty().append(make_choices(data));
         }
     }
 

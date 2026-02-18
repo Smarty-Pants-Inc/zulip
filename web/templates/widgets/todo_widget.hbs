@@ -1,15 +1,31 @@
-<div class="todo-widget">
-    <div class="todo-widget-header-area">
-        <h4 class="todo-task-list-title-header">{{t "Task list" }}</h4>
-        <i class="fa fa-pencil todo-edit-task-list-title"></i>
-        <div class="todo-task-list-title-bar">
-            <input type="text" class="todo-task-list-title" placeholder="{{t 'Add todo task list title'}}" />
-            <button class="todo-task-list-title-remove"><i class="fa fa-remove"></i></button>
-            <button class="todo-task-list-title-check"><i class="fa fa-check"></i></button>
+<div class="todo-widget sp-widget-card sp-widget-todo">
+    <div class="todo-widget-header-area sp-widget-header">
+        <div class="sp-widget-title-wrap">
+            <div class="sp-widget-title-line">
+                <h4 class="todo-task-list-title-header sp-widget-title">{{t "Task list" }}</h4>
+                <button class="sp-widget-icon-btn todo-edit-task-list-title" type="button" aria-label="Edit title">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="sp-widget-pills">
+                <span class="sp-widget-pill">Todo</span>
+            </div>
         </div>
     </div>
-    <ul class="todo-widget">
-    </ul>
+
+    <div class="todo-task-list-title-bar">
+        <input type="text" class="todo-task-list-title" placeholder="{{t 'Add todo task list title'}}" />
+        <button class="sp-widget-icon-btn todo-task-list-title-remove" type="button" aria-label="Cancel">
+            <i class="fa fa-remove" aria-hidden="true"></i>
+        </button>
+        <button class="sp-widget-icon-btn todo-task-list-title-check" type="button" aria-label="Save">
+            <i class="fa fa-check" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <ul class="todo-widget"></ul>
+
     <div class="add-task-bar">
         <input type="text" class="add-task" placeholder="{{t 'New task'}}" />
         <input type="text" class="add-desc" placeholder="{{t 'Description'}}" />

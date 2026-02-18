@@ -52,31 +52,52 @@ async function run(): Promise<void> {
         const page = await browser.newPage();
         // deviceScaleFactor:2 gives better quality screenshots (higher pixel density)
         await page.setViewport({width: 1280, height: 1024, deviceScaleFactor: 2});
-        await page.goto(`${realmUrl}/devlogin`);
-        // wait for Iago devlogin button and click on it.
-        await page.waitForSelector('[value="iago@zulip.com"]');
 
-        // By waiting till DOMContentLoaded we're confirming that Iago is logged in.
-        await Promise.all([
-            page.waitForNavigation({waitUntil: "domcontentloaded"}),
-            page.click('[value="iago@zulip.com"]'),
-        ]);
+        // Log in via dev endpoint to avoid host-redirect issues with `/devlogin`.
+        await page.goto(`${realmUrl}/`, {waitUntil: "domcontentloaded"});
+        await page.evaluate(async (username) => {
+            const body = new URLSearchParams({username});
+            const res = await fetch("/api/v1/dev_fetch_api_key", {
+                method: "POST",
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body,
+                credentials: "same-origin",
+            });
+            if (!res.ok) {
+                throw new Error(`dev_fetch_api_key failed: ${res.status}`);
+            }
+        }, "iago@zulip.com");
 
         // Navigate to message and capture screenshot
         await page.goto(`${realmUrl}/#narrow/id/${messageId}`, {
             waitUntil: "networkidle2",
         });
-        // eslint-disable-next-line no-undef
-        const message_list_id = await page.evaluate(() => zulip_test.current_msg_list?.id);
-        assert.ok(message_list_id !== undefined);
-        const messageSelector = `#message-row-${message_list_id}-${CSS.escape(messageId)}`;
-        await page.waitForSelector(messageSelector);
-        // remove unread marker and don't select message
-        const marker = `#message-row-${message_list_id}-${CSS.escape(messageId)} .unread_marker`;
-        await page.evaluate((sel) => $(sel).remove(), marker);
+        const dataSelector = `[data-message-id="${messageId}"]`;
+        await page.waitForSelector(dataSelector);
+        const message_row_id = await page.evaluate((sel) => {
+            const el = document.querySelector<HTMLElement>(sel);
+            return el?.id;
+        }, dataSelector);
+        assert.ok(message_row_id);
+
+        const messageSelector = `#${CSS.escape(message_row_id)}`;
+
+        // Remove unread marker and don't select message.
+        // (Don't rely on jQuery globals; not all builds expose `$` on window.)
+        const marker = `${messageSelector} .unread_marker`;
+        await page.evaluate((sel) => {
+            for (const el of document.querySelectorAll(sel)) {
+                el.remove();
+            }
+        }, marker);
         const messageBox = await page.$(messageSelector);
         assert.ok(messageBox !== null);
-        await page.evaluate((msg) => $(msg).removeClass("selected_message"), messageSelector);
+        await page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            if (el) {
+                el.classList.remove("selected_message");
+            }
+        }, messageSelector);
         const messageGroup = await messageBox.$("xpath/..");
         assert.ok(messageGroup !== null);
         // Compute screenshot area, with some padding around the message group

@@ -46,9 +46,13 @@ function set_widget_in_message($row: JQuery, $widget_elem: JQuery, any_data: Any
     // "card + text" variants without changing the server payload shape.
     if (any_data.widget_type === "sp_ai") {
         const existing_text = $content_holder.text().trim();
-        if (existing_text.startsWith("/sp_ai")) {
-            // If this message was triggered via a /sp_ai command, the raw text is
-            // not useful to render alongside the card.
+        const display =
+            any_data.extra_data && typeof any_data.extra_data === "object"
+                ? (any_data.extra_data as any).display
+                : undefined;
+
+        if (display === "card_only" || existing_text.startsWith("/sp_ai")) {
+            // Card-only mode: the raw message body isn't useful to render alongside the widget.
             $content_holder.empty();
         }
 

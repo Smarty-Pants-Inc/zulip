@@ -1,6 +1,7 @@
 import * as blueslip from "./blueslip.ts";
 import type {Message} from "./message_store.ts";
 import type {PollWidgetOutboundData} from "./poll_data.ts";
+import type {SpAiWidgetOutboundData} from "./sp_ai_data.ts";
 import type {TodoWidgetOutboundData} from "./todo_widget.ts";
 import type {Event} from "./widget_data.ts";
 import type {AnyWidgetData} from "./widget_schema.ts";
@@ -9,7 +10,7 @@ type HandleInboundEventsFunction = (events: Event[]) => void;
 
 export type PostToServerFunction = (data: {msg_type: string; data: WidgetOutboundData}) => void;
 
-type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData;
+type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData | SpAiWidgetOutboundData;
 
 // These are poll, todo, and zform implementations.
 // They are currently injected into us from another module

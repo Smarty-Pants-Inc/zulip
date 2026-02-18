@@ -1,7 +1,227 @@
-<div class="sp-ai-widget" data-sp-ai-widget-version="{{version}}">
+{{#if is_thinking_kind}}
+<div class="sp-ai-reasoning" data-sp-ai-widget-version="{{version}}" data-sp-ai-status="{{status}}">
+    <button class="sp-ai-reasoning-trigger" type="button" aria-expanded="{{reasoning_expanded}}">
+        <svg class="sp-ai-reasoning-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+            <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path>
+            <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+            <path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+            <path d="M19.938 10.5a4 4 0 0 1 .585.396"></path>
+            <path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+            <path d="M19.967 17.484A4 4 0 0 1 18 18"></path>
+        </svg>
+        <span class="sp-ai-reasoning-label">{{reasoning_label}}</span>
+        <svg class="sp-ai-reasoning-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"></path>
+        </svg>
+    </button>
+    {{#if has_reasoning_text}}
+    <div class="sp-ai-reasoning-content" aria-hidden="{{reasoning_content_hidden}}">
+        <div class="sp-ai-reasoning-text">{{reasoning_text}}</div>
+    </div>
+    {{/if}}
+</div>
+{{else if is_tool_kind}}
+<details
+    class="sp-ai-tool sp-ai-widget sp-ai-kind-{{kind}}{{#if show_parallel}} sp-ai-parallel{{#if parallel_first}} sp-ai-parallel-first{{/if}}{{#if parallel_last}} sp-ai-parallel-last{{/if}}{{/if}}"
+    data-sp-ai-widget-version="{{version}}"
+    data-sp-ai-kind="{{kind}}"
+    data-sp-ai-status="{{status}}"
+    {{#if tool_open}}open{{/if}}
+>
+    {{#if show_parallel}}
+        <div class="sp-ai-parallel-rail" aria-hidden="true"></div>
+    {{/if}}
+
+    <summary class="sp-ai-tool-summary">
+        <div class="sp-ai-tool-summary-left">
+            <span class="sp-ai-tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a5 5 0 0 0-6.4 6.4l-5.6 5.6a2 2 0 0 0 2.8 2.8l5.6-5.6a5 5 0 0 0 6.4-6.4l-3 3-2.8-2.8 3-3Z"></path>
+                </svg>
+            </span>
+
+            <span class="sp-ai-tool-name">{{tool_title}}</span>
+
+            <span class="sp-ai-tool-status sp-ai-status-{{status}}">
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-pending" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-running" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-approval-requested" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-approval-responded" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-ok" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-error" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="M6 6 18 18"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-aborted" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M15 9 9 15"></path>
+                        <path d="M9 9 15 15"></path>
+                    </svg>
+                </span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-denied" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M4.9 4.9 19.1 19.1"></path>
+                    </svg>
+                </span>
+
+                <span class="sp-ai-tool-status-text">{{tool_status_label}}</span>
+            </span>
+        </div>
+
+        <div class="sp-ai-tool-summary-right">
+            <span class="sp-ai-tool-chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m6 9 6 6 6-6"></path>
+                </svg>
+            </span>
+        </div>
+    </summary>
+
+    <div class="sp-ai-tool-content">
+        {{#if show_caption}}
+            <div class="sp-ai-caption">{{caption}}</div>
+        {{/if}}
+
+
+        {{#if has_blocks}}
+            <div class="sp-ai-tool-sections">
+                {{#each blocks}}
+                    <section class="sp-ai-tool-section sp-ai-block-{{kind}}{{#if is_stream}} sp-ai-tool-section-stream sp-ai-tool-section-stream-{{channel}}{{/if}}{{#if is_unknown}} sp-ai-tool-section-unknown{{/if}}">
+                        <div class="sp-ai-tool-section-header">
+                            <h4 class="sp-ai-tool-section-title">{{#if title}}{{title}}{{else}}{{label}}{{/if}}</h4>
+                            <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy-block="{{index}}" aria-label="Copy">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{#if is_table}}
+                            <div class="sp-ai-table-wrap">
+                                <table class="sp-ai-table">
+                                    {{#if has_columns}}
+                                        <thead>
+                                            <tr>
+                                                {{#each columns}}
+                                                    <th>{{this}}</th>
+                                                {{/each}}
+                                            </tr>
+                                        </thead>
+                                    {{/if}}
+                                    <tbody>
+                                        {{#each rows}}
+                                            <tr>
+                                                {{#each this}}
+                                                    <td>{{this}}</td>
+                                                {{/each}}
+                                            </tr>
+                                        {{/each}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {{else}}
+                            {{#if is_markdown}}
+                                <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                            {{else}}
+                                <div class="sp-ai-tool-codewrap">
+                                    <pre class="sp-ai-tool-code" data-language="{{language}}">{{text}}</pre>
+                                </div>
+                            {{/if}}
+                        {{/if}}
+                    </section>
+                {{/each}}
+            </div>
+        {{else}}
+            {{#if has_input}}
+                <div class="sp-ai-tool-section">
+                    <div class="sp-ai-tool-section-header">
+                        <h4 class="sp-ai-tool-section-title">Parameters</h4>
+                        <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy="input" aria-label="Copy">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="sp-ai-tool-codewrap">
+                        <pre class="sp-ai-tool-code" data-language="json">{{input}}</pre>
+                    </div>
+                </div>
+            {{/if}}
+
+            {{#if has_output}}
+                <div class="sp-ai-tool-section">
+                    <div class="sp-ai-tool-section-header">
+                        <h4 class="sp-ai-tool-section-title">Output</h4>
+                        <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy="output" aria-label="Copy">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="sp-ai-tool-codewrap">
+                        <pre class="sp-ai-tool-code" data-language="">{{output}}</pre>
+                    </div>
+                </div>
+            {{/if}}
+        {{/if}}
+
+        {{#if show_tool_approval_actions}}
+            <div class="sp-ai-footer sp-ai-tool-footer">
+                <button class="sp-ai-btn sp-ai-btn-approve" type="button" data-action="approve">Approve</button>
+                <button class="sp-ai-btn sp-ai-btn-deny" type="button" data-action="deny">Deny</button>
+            </div>
+        {{/if}}
+    </div>
+</details>
+{{else}}
+<div
+    class="sp-ai-widget sp-ai-kind-{{kind}}{{#if show_parallel}} sp-ai-parallel{{#if parallel_first}} sp-ai-parallel-first{{/if}}{{#if parallel_last}} sp-ai-parallel-last{{/if}}{{/if}}"
+    data-sp-ai-widget-version="{{version}}"
+>
+    {{#if show_parallel}}
+        <div class="sp-ai-parallel-rail" aria-hidden="true"></div>
+    {{/if}}
+
     <div class="sp-ai-header">
-        <div class="sp-ai-title">{{title}}</div>
-        <div class="sp-ai-status sp-ai-status-{{status}}">{{status_label}}</div>
+        <div class="sp-ai-title-wrap">
+            <div class="sp-ai-title">{{title}}</div>
+            <div class="sp-ai-kind-badge">{{kind_label}}</div>
+            {{#if show_status_pill}}
+                <div class="sp-ai-status sp-ai-status-{{status}}">{{status_label}}</div>
+            {{/if}}
+        </div>
     </div>
 
     {{#if show_caption}}
@@ -16,22 +236,112 @@
     {{/if}}
 
     {{#if has_input}}
-        <details class="sp-ai-section">
-            <summary>
-                <span>Input</span>
-                <button class="sp-ai-copy" type="button" data-copy="input">Copy</button>
-            </summary>
-            <pre class="sp-ai-pre">{{input}}</pre>
-        </details>
+        <div class="sp-ai-tool-section sp-ai-panel-section">
+            <div class="sp-ai-tool-section-header">
+                <h4 class="sp-ai-tool-section-title">Input</h4>
+                <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy="input" aria-label="Copy">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="sp-ai-tool-codewrap">
+                <pre class="sp-ai-tool-code" data-language="">{{input}}</pre>
+            </div>
+        </div>
     {{/if}}
 
     {{#if has_output}}
-        <details class="sp-ai-section" open>
-            <summary>
-                <span>Output</span>
-                <button class="sp-ai-copy" type="button" data-copy="output">Copy</button>
-            </summary>
-            <pre class="sp-ai-pre">{{output}}</pre>
-        </details>
+        <div class="sp-ai-tool-section sp-ai-panel-section">
+            <div class="sp-ai-tool-section-header">
+                <h4 class="sp-ai-tool-section-title">Output</h4>
+                <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy="output" aria-label="Copy">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="sp-ai-tool-codewrap">
+                <pre class="sp-ai-tool-code" data-language="">{{output}}</pre>
+            </div>
+        </div>
+    {{/if}}
+
+    {{#if has_blocks}}
+        <div class="sp-ai-blocks">
+            {{#each blocks}}
+                <section class="sp-ai-block sp-ai-block-{{kind}}{{#if is_unknown}} sp-ai-block-unknown{{/if}}{{#if is_stream}} sp-ai-block-stream sp-ai-block-stream-{{channel}}{{/if}}">
+                    <div class="sp-ai-block-header">
+                        <div class="sp-ai-block-meta">
+                            <span class="sp-ai-block-badge">{{label}}</span>
+                            {{#if title}}
+                                <span class="sp-ai-block-title">{{title}}</span>
+                            {{/if}}
+                        </div>
+
+                        <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy-block="{{index}}" aria-label="Copy">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{#if is_table}}
+                        <div class="sp-ai-table-wrap">
+                            <table class="sp-ai-table">
+                                {{#if has_columns}}
+                                    <thead>
+                                        <tr>
+                                            {{#each columns}}
+                                                <th>{{this}}</th>
+                                            {{/each}}
+                                        </tr>
+                                    </thead>
+                                {{/if}}
+                                <tbody>
+                                    {{#each rows}}
+                                        <tr>
+                                            {{#each this}}
+                                                <td>{{this}}</td>
+                                            {{/each}}
+                                        </tr>
+                                    {{/each}}
+                                </tbody>
+                            </table>
+                        </div>
+                    {{else}}
+                        {{#if is_markdown}}
+                            <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                        {{else}}
+                            <pre class="sp-ai-pre{{#if language}} sp-ai-pre-lang{{/if}}" data-language="{{language}}">{{text}}</pre>
+                        {{/if}}
+                    {{/if}}
+                </section>
+            {{/each}}
+        </div>
+    {{/if}}
+
+    {{#if has_widget_actions}}
+        <div class="sp-ai-footer">
+            {{#if show_abort}}
+                <button class="sp-ai-btn sp-ai-btn-abort" type="button" data-action="abort">Abort</button>
+            {{/if}}
+
+            {{#if show_retry}}
+                <button class="sp-ai-btn sp-ai-btn-retry" type="button" data-action="retry">Retry</button>
+            {{/if}}
+
+            {{#if show_approve}}
+                <button class="sp-ai-btn sp-ai-btn-approve" type="button" data-action="approve">Approve</button>
+            {{/if}}
+
+            {{#if show_deny}}
+                <button class="sp-ai-btn sp-ai-btn-deny" type="button" data-action="deny">Deny</button>
+            {{/if}}
+        </div>
     {{/if}}
 </div>
+{{/if}}
