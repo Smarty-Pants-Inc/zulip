@@ -14,7 +14,6 @@ from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
-from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -61,14 +60,13 @@ from zerver.actions.user_groups import (
     check_add_user_group,
 )
 from zerver.actions.users import do_change_user_role, do_deactivate_user
-from zerver.lib.branding import get_branding_context
 from zerver.lib.exceptions import AccessDeniedError, JsonableError, ResourceNotFoundError
 from zerver.lib.outgoing_http import OutgoingSession
 from zerver.lib.response import json_success
 from zerver.lib.retention import STREAM_MESSAGE_BATCH_SIZE as RETENTION_STREAM_MESSAGE_BATCH_SIZE
 from zerver.lib.streams import create_stream_if_needed
-from zerver.lib.topic import maybe_rename_general_chat_to_empty_topic, messages_for_topic
-from zerver.lib.user_groups import get_recursive_group_members, is_user_in_group
+from zerver.lib.topic import messages_for_topic, maybe_rename_general_chat_to_empty_topic
+from zerver.lib.user_groups import is_user_in_group
 from zerver.lib.users import validate_short_name_and_construct_bot_email
 from zerver.lib.utils import assert_is_not_none
 from zerver.models import (

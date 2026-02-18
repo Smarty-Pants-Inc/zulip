@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """check_fork_upstream_branding_strings.py
 
 Lightweight guardrail for downstream forks.
