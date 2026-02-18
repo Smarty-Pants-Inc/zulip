@@ -126,7 +126,6 @@ export function reply_message(message: Message, content: string): void {
     const sender_id = current_user.user_id;
     const queue_id = server_events_state.queue_id;
 
-
     if (message.type === "stream") {
         const stream_name = stream_data.get_stream_name_from_id(message.stream_id);
 
