@@ -10,7 +10,7 @@ from django.core.cache import cache
 from django.utils.timezone import now as timezone_now
 
 from zerver.lib.test_classes import ZulipTestCase
-from zerver.models import Recipient, Subscription
+from zerver.models import Message, Recipient, Stream, Subscription
 from zerver.models.realms import get_realm
 from zerver.models.users import get_user_by_delivery_email
 
@@ -117,6 +117,98 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     def tearDown(self) -> None:
         cache.clear()
         super().tearDown()
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    def test_s2s_send_stream_as_user_allows_sponsor_as_self(self) -> None:
+        invoker_message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        denmark = Stream.objects.get(name="Denmark", realm=self.realm)
+
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": invoker_message_id,
+            "sender_user_id": self.sponsor.id,
+            "stream_id": denmark.id,
+            "topic": "sp",
+            "content": "hello from s2s",
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/messages/send_stream_as_user",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        response_json = self.assert_json_success(result)
+
+        msg = Message.objects.get(id=response_json["id"], realm_id=self.realm.id)
+        self.assertEqual(msg.sender_id, self.sponsor.id)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    def test_s2s_send_stream_as_user_rejects_sponsor_impersonation(self) -> None:
+        invoker_message_id = self.send_stream_message(self.sponsor, "Denmark", topic_name="sp")
+        denmark = Stream.objects.get(name="Denmark", realm=self.realm)
+
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.sponsor.id,
+            "invoker_message_id": invoker_message_id,
+            "sender_user_id": self.admin.id,
+            "stream_id": denmark.id,
+            "topic": "sp",
+            "content": "spoof",
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/messages/send_stream_as_user",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        self.assertEqual(result.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+        },
+        clear=False,
+    )
+    def test_s2s_send_stream_as_user_allows_admin_to_send_as_other_human(self) -> None:
+        invoker_message_id = self.send_stream_message(self.admin, "Denmark", topic_name="sp")
+        denmark = Stream.objects.get(name="Denmark", realm=self.realm)
+
+        payload = {
+            "realm_id": self.realm.id,
+            "invoker_user_id": self.admin.id,
+            "invoker_message_id": invoker_message_id,
+            "sender_user_id": self.sponsor.id,
+            "stream_id": denmark.id,
+            "topic": "sp",
+            "content": "admin can replay",
+        }
+
+        result = self.client_post(
+            "/api/s2s/smarty_pants/messages/send_stream_as_user",
+            orjson.dumps(payload),
+            content_type="application/json",
+            headers=self._headers(),
+        )
+        response_json = self.assert_json_success(result)
+        msg = Message.objects.get(id=response_json["id"], realm_id=self.realm.id)
+        self.assertEqual(msg.sender_id, self.sponsor.id)
 
     @mock.patch.dict(
         os.environ,

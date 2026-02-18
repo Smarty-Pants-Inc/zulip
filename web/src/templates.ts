@@ -165,34 +165,49 @@ Handlebars.registerHelper("object_values", (o: unknown): unknown => {
 
 type Context = Record<string, unknown>;
 
-Handlebars.registerHelper("t", function (this: Context, message: string) {
-    // Marks a string for translation.
-    // Example usage 1:
-    //     {{t "some English text"}}
-    //
-    // Example usage 2:
-    //     {{t "This {variable} will get value from the current context"}}
-    //
-    // Note: use `{` and `}` instead of `{{` and `}}` to declare
-    // variables.
+Handlebars.registerHelper(
+    "t",
+    function (this: Context, message: string, options?: Handlebars.HelperOptions): string {
+        // Marks a string for translation.
+        // Example usage 1:
+        //     {{t "some English text"}}
+        //
+        // Example usage 2:
+        //     {{t "This {variable} will get value from the current context"}}
+        //
+        // Hash arguments (e.g. `branding_name=(brand_name)`) are passed via `options.hash`.
+        // We merge them into the context used for interpolation.
+        //
+        // Note: use `{` and `}` instead of `{{` and `}}` to declare variables.
 
-    message = message
-        .trim()
-        .split("\n")
-        .map((s) => s.trim())
-        .join(" ");
-    const descriptor = {id: message, defaultMessage: message};
-    return intl.formatMessage(
-        descriptor,
-        Object.fromEntries(
-            Object.entries(this).flatMap(([key, value]) =>
-                typeof value === "string" || typeof value === "number" || value instanceof Date
-                    ? [[key, value]]
-                    : [],
+        message = message
+            .trim()
+            .split("\n")
+            .map((s) => s.trim())
+            .join(" ");
+        const descriptor = {id: message, defaultMessage: message};
+
+        const hash: Record<string, unknown> =
+            options && typeof options.hash === "object" && options.hash !== null
+                ? (options.hash as Record<string, unknown>)
+                : {};
+        const ctx: Record<string, unknown> = {
+            ...this,
+            ...hash,
+        };
+
+        return intl.formatMessage(
+            descriptor,
+            Object.fromEntries(
+                Object.entries(ctx).flatMap(([key, value]) =>
+                    typeof value === "string" || typeof value === "number" || value instanceof Date
+                        ? [[key, value]]
+                        : [],
+                ),
             ),
-        ),
-    );
-});
+        );
+    },
+);
 
 Handlebars.registerHelper("tr", function (this: Context, options: Handlebars.HelperOptions) {
     // Marks a block for translation.
@@ -221,6 +236,11 @@ Handlebars.registerHelper("tr", function (this: Context, options: Handlebars.Hel
         options.fn.partials !== null
             ? options.fn.partials
             : {};
+    const ctx: Record<string, unknown> = {
+        ...this,
+        ...(options.hash ?? {}),
+    };
+
     const result = intl.formatMessage(descriptor, {
         ...default_html_elements,
         ...Object.fromEntries(
@@ -231,7 +251,7 @@ Handlebars.registerHelper("tr", function (this: Context, options: Handlebars.Hel
             ]),
         ),
         ...Object.fromEntries(
-            Object.entries(this).flatMap(([key, value]): [string, string | number | Date][] =>
+            Object.entries(ctx).flatMap(([key, value]): [string, string | number | Date][] =>
                 typeof value === "string"
                     ? [[key, Handlebars.Utils.escapeExpression(value)]]
                     : typeof value === "number" || value instanceof Date

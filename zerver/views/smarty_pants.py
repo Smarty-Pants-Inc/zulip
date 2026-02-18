@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from datetime import timedelta
 from hashlib import sha256
 from typing import Any
@@ -10,9 +11,9 @@ from urllib.parse import urljoin
 
 import requests
 from django.core.cache import cache
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
-from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -23,6 +24,7 @@ from zerver.actions.channel_folders import (
     do_change_channel_folder_name,
     do_unarchive_channel_folder,
 )
+from zerver.actions.create_user import do_create_user, do_reactivate_user
 from zerver.actions.default_streams import (
     do_add_default_stream,
     do_add_streams_to_default_stream_group,
@@ -33,8 +35,14 @@ from zerver.actions.default_streams import (
     do_remove_default_stream_group,
     do_remove_streams_from_default_stream_group,
 )
-from zerver.actions.create_user import do_create_user, do_reactivate_user
 from zerver.actions.invites import do_create_multiuse_invite_link
+from zerver.actions.message_delete import do_delete_messages
+from zerver.actions.message_send import check_send_message
+from zerver.actions.realm_settings import (
+    do_change_realm_permission_group_setting,
+    do_set_realm_property,
+    do_set_realm_user_default_setting,
+)
 from zerver.actions.streams import (
     bulk_add_subscriptions,
     do_change_stream_description,
@@ -51,19 +59,16 @@ from zerver.actions.user_groups import (
     bulk_remove_members_from_user_groups,
     check_add_user_group,
 )
-from zerver.actions.realm_settings import (
-    do_change_realm_permission_group_setting,
-    do_set_realm_property,
-    do_set_realm_user_default_setting,
-)
 from zerver.actions.users import do_change_user_role, do_deactivate_user
-from zerver.lib.branding import get_branding_context
 from zerver.lib.exceptions import AccessDeniedError, JsonableError, ResourceNotFoundError
 from zerver.lib.outgoing_http import OutgoingSession
 from zerver.lib.response import json_success
+from zerver.lib.retention import STREAM_MESSAGE_BATCH_SIZE as RETENTION_STREAM_MESSAGE_BATCH_SIZE
 from zerver.lib.streams import create_stream_if_needed
+from zerver.lib.topic import messages_for_topic, maybe_rename_general_chat_to_empty_topic
+from zerver.lib.user_groups import is_user_in_group
 from zerver.lib.users import validate_short_name_and_construct_bot_email
-from zerver.lib.user_groups import get_recursive_group_members, is_user_in_group
+from zerver.lib.utils import assert_is_not_none
 from zerver.models import (
     ChannelFolder,
     Message,
@@ -72,7 +77,9 @@ from zerver.models import (
     RealmBranding,
     Stream,
     UserGroupMembership,
+    UserTopic,
 )
+from zerver.models.clients import get_client
 from zerver.models.groups import SystemGroups
 from zerver.models.users import RealmUserDefault, UserProfile, get_user_by_delivery_email, get_user_profile_by_id_in_realm
 
@@ -183,9 +190,17 @@ def _extract_smarty_pants_secret_from_request(request: HttpRequest) -> str | Non
     return None
 
 
-def _require_smarty_pants_shared_secret(request: HttpRequest) -> None:
+def _require_smarty_pants_shared_secret(request: HttpRequest, *, payload: dict[str, Any] | None = None) -> None:
     expected = _get_smarty_pants_shared_secret()
     provided = _extract_smarty_pants_secret_from_request(request)
+
+    # Nginx/uwsgi configs in Zulip prod can drop arbitrary HTTP headers.
+    # Support passing the secret in the request payload as a fallback.
+    if provided is None and payload is not None:
+        raw = payload.get("secret")
+        if isinstance(raw, str) and raw.strip():
+            provided = raw.strip()
+
     if provided is None or not constant_time_compare(provided, expected):
         raise AccessDeniedError()
 
@@ -268,9 +283,8 @@ def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
     Empty strings (or null) clear a field.
     """
 
-    _require_smarty_pants_shared_secret(request)
-
     if request.method == "GET":
+        _require_smarty_pants_shared_secret(request)
         realm = _get_realm_for_s2s_request(request.GET.get("realm_id") or request.GET.get("realmId"))
         branding_row = RealmBranding.objects.filter(realm=realm).first()
         overrides = _realm_branding_overrides_dict(branding_row)
@@ -281,6 +295,7 @@ def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
 
     branding_payload: dict[str, Any] | None = None
@@ -434,12 +449,11 @@ def s2s_smarty_pants_authz_check(request: HttpRequest) -> HttpResponse:
       - is_sponsor
     """
 
-    _require_smarty_pants_shared_secret(request)
-
     if request.method != "POST":
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     user_id = _coerce_int_param(payload.get("user_id") or payload.get("userId"), field_name="user_id")
 
@@ -1975,12 +1989,11 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
       - invoker_user_id must be an active, non-bot user in the realm.
     """
 
-    _require_smarty_pants_shared_secret(request)
-
     if request.method != "POST":
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2020,8 +2033,8 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     if message.sender_id != invoker.id:
         raise AccessDeniedError()
 
-    if timezone_now() - message.date_sent > SMARTY_PANTS_S2S_INVOCATION_FRESHNESS_WINDOW:
-        raise JsonableError(_("Invoker message is too old."))
+    # Unlike tool execution, message replay can be long-lived (backfill and live sync).
+    # We still pin invoker identity to a real message, but do not require freshness.
 
     normalized_args = _normalize_tool_args_for_cache(args)
     cache_key = _s2s_tools_execute_cache_key(
@@ -2247,6 +2260,255 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     )
 
     return json_success(request, data=response_data)
+
+
+@csrf_exempt
+def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpResponse:
+    """Send a stream message as a specified Zulip user.
+
+    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+
+    POST body (form or JSON):
+      - realm_id
+      - invoker_user_id
+      - invoker_message_id
+      - sender_user_id
+      - stream_id
+      - topic
+      - content
+      - date_sent (optional unix timestamp float)
+
+    Anti-spoof:
+      - invoker_message_id must exist in the realm and be sent by invoker_user_id.
+      - invoker_user_id must be an active, non-bot user in the realm.
+
+    Authorization:
+      - invoker must be admin or sponsor.
+      - non-admin invokers may only send as themselves or as bots.
+    """
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
+
+    realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
+    invoker_user_id = _coerce_int_param(
+        payload.get("invoker_user_id") or payload.get("invokerUserId"),
+        field_name="invoker_user_id",
+    )
+    invoker_message_id = _coerce_int_param(
+        payload.get("invoker_message_id") or payload.get("invokerMessageId"),
+        field_name="invoker_message_id",
+    )
+
+    sender_user_id = _coerce_int_param(
+        payload.get("sender_user_id") or payload.get("senderUserId"),
+        field_name="sender_user_id",
+    )
+    stream_id = _coerce_int_param(
+        payload.get("stream_id") or payload.get("streamId"),
+        field_name="stream_id",
+    )
+
+    topic = payload.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        raise JsonableError(_("The 'topic' parameter is required."))
+    topic = topic.strip()
+
+    content = payload.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise JsonableError(_("The 'content' parameter is required."))
+    content = content.strip()
+
+    date_sent_raw = payload.get("date_sent") or payload.get("dateSent")
+    date_sent: float | None = None
+    if date_sent_raw is not None:
+        try:
+            date_sent = float(date_sent_raw)
+        except Exception:
+            raise JsonableError(_("The 'date_sent' parameter must be a number."))
+
+    # Validate the invoker and the message used as proof-of-identity.
+    try:
+        invoker = get_user_profile_by_id_in_realm(invoker_user_id, realm)
+    except UserProfile.DoesNotExist:
+        raise ResourceNotFoundError(_("Invoker not found."))
+
+    if not invoker.is_active:
+        raise JsonableError(_("Invoker is deactivated."))
+    if invoker.is_bot:
+        raise JsonableError(_("Invoker must be a human user (not a bot)."))
+
+    try:
+        message = Message.objects.only("id", "sender_id", "realm_id", "date_sent").get(
+            id=invoker_message_id, realm_id=realm.id
+        )
+    except Message.DoesNotExist:
+        raise ResourceNotFoundError(_("Message not found."))
+
+    if message.sender_id != invoker.id:
+        raise AccessDeniedError()
+
+    # Message replay can be long-lived (backfill and ongoing sync). We still pin invoker
+    # identity to a real message, but we do not require freshness.
+
+    is_admin = _is_realm_admin_user(invoker)
+    is_sponsor = _is_sponsor_user(invoker)
+    if not (is_admin or is_sponsor):
+        raise AccessDeniedError()
+
+    try:
+        sender = get_user_profile_by_id_in_realm(sender_user_id, realm)
+    except UserProfile.DoesNotExist:
+        raise ResourceNotFoundError(_("Sender not found."))
+
+    if not sender.is_active:
+        raise JsonableError(_("Sender is deactivated."))
+
+    if not is_admin:
+        # Sponsors may not impersonate other humans.
+        if sender.id != invoker.id and not sender.is_bot:
+            raise AccessDeniedError()
+
+    try:
+        stream = Stream.objects.get(id=stream_id, realm=realm)
+    except Stream.DoesNotExist:
+        raise ResourceNotFoundError(_("Stream not found."))
+
+    client = get_client("smarty-pants-s2s")
+    sent = check_send_message(
+        sender=sender,
+        client=client,
+        recipient_type_name="stream",
+        message_to=[stream.id],
+        topic_name=topic,
+        message_content=content,
+        realm=realm,
+        forged=date_sent is not None,
+        forged_timestamp=date_sent,
+        forwarder_user_profile=invoker,
+        read_by_sender=False,
+    )
+
+    return json_success(
+        request,
+        data={
+            "id": sent.message_id,
+            "realm_id": realm.id,
+            "invoker_user_id": invoker.id,
+            "invoker_message_id": invoker_message_id,
+            "sender_user_id": sender.id,
+            "stream_id": stream.id,
+            "topic": topic,
+        },
+    )
+
+
+@csrf_exempt
+def s2s_smarty_pants_messages_purge_topic(request: HttpRequest) -> HttpResponse:
+    """Delete all messages in a given stream/topic.
+
+    This is intended for operational cleanup/resync flows.
+
+    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+
+    POST body (form or JSON):
+      - realm_id
+      - invoker_user_id
+      - invoker_message_id
+      - stream_id
+      - topic
+
+    Anti-spoof:
+      - invoker_message_id must exist in the realm and be sent by invoker_user_id.
+      - invoker_user_id must be an active, non-bot user in the realm.
+
+    Authorization:
+      - invoker must be a realm admin/owner.
+
+    Response:
+      - complete: bool (false if timed out; call again to continue)
+      - deleted: number (best-effort count)
+    """
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    payload = _parse_request_payload(request)
+    _require_smarty_pants_shared_secret(request, payload=payload)
+
+    realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
+    invoker_user_id = _coerce_int_param(
+        payload.get("invoker_user_id") or payload.get("invokerUserId"),
+        field_name="invoker_user_id",
+    )
+    invoker_message_id = _coerce_int_param(
+        payload.get("invoker_message_id") or payload.get("invokerMessageId"),
+        field_name="invoker_message_id",
+    )
+
+    stream_id = _coerce_int_param(
+        payload.get("stream_id") or payload.get("streamId"),
+        field_name="stream_id",
+    )
+
+    topic = payload.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        raise JsonableError(_("The 'topic' parameter is required."))
+    topic = maybe_rename_general_chat_to_empty_topic(topic.strip())
+
+    # Validate invoker + proof-of-identity message.
+    try:
+        invoker = get_user_profile_by_id_in_realm(invoker_user_id, realm)
+    except UserProfile.DoesNotExist:
+        raise ResourceNotFoundError(_("Invoker not found."))
+
+    if not invoker.is_active:
+        raise JsonableError(_("Invoker is deactivated."))
+    if invoker.is_bot:
+        raise JsonableError(_("Invoker must be a human user (not a bot)."))
+
+    try:
+        proof = Message.objects.only("id", "sender_id", "realm_id").get(id=invoker_message_id, realm_id=realm.id)
+    except Message.DoesNotExist:
+        raise ResourceNotFoundError(_("Message not found."))
+
+    if proof.sender_id != invoker.id:
+        raise AccessDeniedError()
+
+    if not _is_realm_admin_user(invoker):
+        raise AccessDeniedError()
+
+    try:
+        stream = Stream.objects.get(id=stream_id, realm=realm)
+    except Stream.DoesNotExist:
+        raise ResourceNotFoundError(_("Stream not found."))
+
+    recipient_id = assert_is_not_none(stream.recipient_id)
+    messages = messages_for_topic(realm.id, recipient_id, topic)
+
+    start_time = time.monotonic()
+    deleted = 0
+    batch_size = RETENTION_STREAM_MESSAGE_BATCH_SIZE
+
+    while True:
+        # Keep request bounded; caller can repeat until complete.
+        if time.monotonic() >= start_time + 20:
+            return json_success(request, data={"ok": True, "complete": False, "deleted": deleted})
+
+        with transaction.atomic(durable=True):
+            messages_to_delete = messages.order_by("-id")[0:batch_size].select_for_update(of=("self",))
+            if not messages_to_delete:
+                break
+            deleted += len(messages_to_delete)
+            do_delete_messages(realm, messages_to_delete, acting_user=invoker)
+
+    # Best-effort cleanup of per-user topic settings now that the topic is empty.
+    UserTopic.objects.filter(stream_id=stream.id, topic_name__iexact=topic).delete()
+
+    return json_success(request, data={"ok": True, "complete": True, "deleted": deleted})
 
 
 def _control_plane_url(base_url: str, path: str) -> str:

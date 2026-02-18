@@ -15,12 +15,12 @@ from version import (
     LATEST_RELEASE_VERSION,
     ZULIP_VERSION,
 )
+from zerver.lib.branding import get_branding_context, get_branding_page_params
 from zerver.lib.exceptions import InvalidSubdomainError
 from zerver.lib.i18n import get_language_list
 from zerver.lib.realm_description import get_realm_rendered_description, get_realm_text_description
 from zerver.lib.realm_icon import get_realm_icon_url
 from zerver.lib.request import RequestNotes
-from zerver.lib.branding import get_branding_context, get_branding_page_params
 from zerver.lib.subdomains import get_subdomain, is_root_domain_available
 from zerver.models import PreregistrationRealm, Realm, RealmUserDefault, UserProfile
 from zerver.models.realms import get_realm
