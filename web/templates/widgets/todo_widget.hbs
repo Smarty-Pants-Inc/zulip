@@ -1,13 +1,17 @@
 <div class="todo-widget sp-widget-card sp-widget-todo">
     <div class="todo-widget-header-area sp-widget-header">
         <div class="sp-widget-title-wrap">
-            <h4 class="todo-task-list-title-header sp-widget-title">{{t "Task list" }}</h4>
-            <span class="sp-widget-pill">Todo</span>
-        </div>
+            <div class="sp-widget-title-line">
+                <h4 class="todo-task-list-title-header sp-widget-title">{{t "Task list" }}</h4>
+                <button class="sp-widget-icon-btn todo-edit-task-list-title" type="button" aria-label="Edit title">
+                    <i class="fa fa-pencil" aria-hidden="true"></i>
+                </button>
+            </div>
 
-        <button class="sp-widget-icon-btn todo-edit-task-list-title" type="button" aria-label="Edit title">
-            <i class="fa fa-pencil" aria-hidden="true"></i>
-        </button>
+            <div class="sp-widget-pills">
+                <span class="sp-widget-pill">Todo</span>
+            </div>
+        </div>
     </div>
 
     <div class="todo-task-list-title-bar">

@@ -46,10 +46,25 @@
 .sp-widget-title-wrap {
     display: flex;
     flex-flow: row wrap;
-    align-items: baseline;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
     flex: 1 1 auto;
     min-width: 12ch;
+}
+
+.sp-widget-title-line {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sp-widget-pills {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: baseline;
+    gap: 4px;
 }
 
 .sp-widget-title {
@@ -57,7 +72,6 @@
     font-weight: 600;
     margin: 0;
     overflow-wrap: anywhere;
-    margin-right: 8px;
 }
 
 .sp-widget-pill {
@@ -221,18 +235,27 @@
     align-items: center;
 }
 
-.sp-widget-card.todo-widget label.checkbox input[type="checkbox"] ~ .custom-checkbox {
+.sp-widget-card.todo-widget .todo-checkbox {
+    flex: 0 0 34px;
     width: 34px;
     height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sp-widget-card.todo-widget label.checkbox input[type="checkbox"] ~ .custom-checkbox {
+    width: 20px;
+    height: 20px;
     padding: 0;
     margin: 0;
-    border: 1px solid var(--color-border-dropdown-widget-button);
-    border-radius: 8px;
-    background-color: var(--color-background-widget-button);
+    border: 2px solid var(--color-border-dropdown-widget-button);
+    border-radius: 6px;
+    background-color: transparent;
     background-image: none;
     background-repeat: no-repeat;
     background-position: 50% 50%;
-    background-size: 70%;
+    background-size: 75%;
 }
 
 .sp-widget-card.todo-widget label.checkbox input[type="checkbox"]:checked ~ .custom-checkbox {
@@ -1125,12 +1148,21 @@
 
 .sp-widget-card.poll-widget input[type="text"],
 .sp-widget-card.todo-widget input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 14ch;
+    height: 34px;
+    box-sizing: border-box;
     border: 1px solid var(--color-border-dropdown-widget-button);
     box-shadow: none;
     border-radius: 8px;
     color: var(--color-text-default);
     background-color: var(--color-background-widget-input);
-    padding: var(--input-vertical-padding) var(--input-horizontal-padding);
+    padding: 0 12px;
+    font-size: 0.95em;
+
+    &::placeholder {
+        opacity: 0.65;
+    }
 
     &:focus {
         border-color: var(--color-border-dropdown-widget-button);
@@ -1153,11 +1185,11 @@
 
 .sp-widget-card.poll-widget .poll-option-bar,
 .sp-widget-card.todo-widget .add-task-bar {
-    margin-top: 8px;
+    margin-top: 10px;
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
 }
 
 .sp-widget-card.poll-widget button.poll-option,
@@ -1170,13 +1202,18 @@
     border-radius: 8px;
     padding: 0 12px;
     background-color: var(--color-background-widget-button);
-    font-weight: 600;
+    color: var(--color-text-default);
+    font-weight: 700;
     font-size: 0.857em;
     line-height: 1;
     cursor: pointer;
 
     &:hover {
         filter: brightness(0.98);
+    }
+
+    &:active {
+        transform: translateY(0.5px);
     }
 }
 
