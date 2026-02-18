@@ -3,6 +3,9 @@ import * as z from "zod/mini";
 
 import render_widgets_sp_ai_widget from "../templates/widgets/sp_ai_widget.hbs";
 
+// Use webpack's asset pipeline so the WASM is available in both dev and prod.
+import onigWasmUrl from "vscode-oniguruma/release/onig.wasm";
+
 import $ from "jquery";
 
 import * as blueslip from "./blueslip.ts";
@@ -106,8 +109,8 @@ async function get_starry_night(): Promise<any> {
 
         const starryNight = await createStarryNight(common, {
             getOnigurumaUrlFetch() {
-                // Served by webpack-dev-server (see webpack.config.ts devServer.static).
-                return new URL("/webpack/onig/onig.wasm", window.location.href);
+                // Stable URL in both dev and production.
+                return new URL(onigWasmUrl, window.location.href);
             },
         });
 
@@ -135,6 +138,12 @@ async function highlight_code_in_element(elem: HTMLElement, language: string): P
 }
 
 async function apply_sp_ai_highlighting(root: HTMLElement): Promise<void> {
+    // If highlighting fails once (e.g. WASM can't load), don't keep retrying.
+    if (root.getAttribute("data-highlight-error") === "1") {
+        return;
+    }
+
+    try {
     const code_nodes = Array.from(root.querySelectorAll<HTMLElement>(
         ".sp-ai-tool-code[data-language], .sp-ai-pre[data-language]",
     ));
@@ -156,6 +165,10 @@ async function apply_sp_ai_highlighting(root: HTMLElement): Promise<void> {
         const pretty = (container?.getAttribute("data-code-language") ?? "").trim();
         const flag = pretty ? pretty.toLowerCase().replaceAll(" ", "") : "";
         await highlight_code_in_element(node, flag);
+    }
+    } catch (error) {
+        root.setAttribute("data-highlight-error", "1");
+        blueslip.warn("sp_ai highlighting failed; disabling for this widget", {error});
     }
 }
 
