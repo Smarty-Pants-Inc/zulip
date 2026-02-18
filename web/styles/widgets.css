@@ -74,6 +74,11 @@
     overflow-wrap: anywhere;
 }
 
+/* Ensure global h4 styles don't reintroduce bottom margin inside widget cards. */
+.sp-widget-card h4.sp-widget-title {
+    margin: 0;
+}
+
 .sp-widget-pill {
     flex: 0 0 auto;
     font-size: 0.7857em; /* 11px at 14px/em */
