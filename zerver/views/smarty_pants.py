@@ -2377,6 +2377,21 @@ def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpR
     except Stream.DoesNotExist:
         raise ResourceNotFoundError(_("Stream not found."))
 
+    forwarder_user_profile: UserProfile | None
+    if sender.id == invoker.id:
+        # Normal: invoker sends as themselves.
+        forwarder_user_profile = invoker
+    elif sender.is_bot:
+        # For bot senders, setting a different forwarder requires can_forge_sender.
+        # We pin invoker identity at the API layer (invoker_message_id proof), so
+        # we intentionally do not forward for the send.
+        forwarder_user_profile = None
+    else:
+        # Require Zulip's forging permission when impersonating another human.
+        if not invoker.can_forge_sender:
+            raise AccessDeniedError()
+        forwarder_user_profile = invoker
+
     client = get_client("smarty-pants-s2s")
     sent = check_send_message(
         sender=sender,
@@ -2388,7 +2403,7 @@ def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpR
         realm=realm,
         forged=date_sent is not None,
         forged_timestamp=date_sent,
-        forwarder_user_profile=invoker,
+        forwarder_user_profile=forwarder_user_profile,
         read_by_sender=False,
     )
 
@@ -2561,6 +2576,10 @@ def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> H
     for msg in normalized:
         sender = senders[msg["sender_user_id"]]
         try:
+            forwarder_user_profile: UserProfile | None = invoker
+            if sender.is_bot and sender.id != invoker.id:
+                forwarder_user_profile = None
+
             sent = check_send_message(
                 sender=sender,
                 client=client,
@@ -2571,7 +2590,7 @@ def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> H
                 realm=realm,
                 forged=msg["date_sent"] is not None,
                 forged_timestamp=msg["date_sent"],
-                forwarder_user_profile=invoker,
+                forwarder_user_profile=forwarder_user_profile,
                 read_by_sender=False,
             )
         except Exception as e:
