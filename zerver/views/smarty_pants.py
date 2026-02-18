@@ -25,6 +25,7 @@ from zerver.actions.channel_folders import (
     do_change_channel_folder_name,
     do_unarchive_channel_folder,
 )
+from zerver.actions.create_user import do_create_user, do_reactivate_user
 from zerver.actions.default_streams import (
     do_add_default_stream,
     do_add_streams_to_default_stream_group,
@@ -35,8 +36,14 @@ from zerver.actions.default_streams import (
     do_remove_default_stream_group,
     do_remove_streams_from_default_stream_group,
 )
-from zerver.actions.create_user import do_create_user, do_reactivate_user
 from zerver.actions.invites import do_create_multiuse_invite_link
+from zerver.actions.message_delete import do_delete_messages
+from zerver.actions.message_send import check_send_message
+from zerver.actions.realm_settings import (
+    do_change_realm_permission_group_setting,
+    do_set_realm_property,
+    do_set_realm_user_default_setting,
+)
 from zerver.actions.streams import (
     bulk_add_subscriptions,
     do_change_stream_description,
@@ -53,13 +60,6 @@ from zerver.actions.user_groups import (
     bulk_remove_members_from_user_groups,
     check_add_user_group,
 )
-from zerver.actions.realm_settings import (
-    do_change_realm_permission_group_setting,
-    do_set_realm_property,
-    do_set_realm_user_default_setting,
-)
-from zerver.actions.message_delete import do_delete_messages
-from zerver.actions.message_send import check_send_message
 from zerver.actions.users import do_change_user_role, do_deactivate_user
 from zerver.lib.branding import get_branding_context
 from zerver.lib.exceptions import AccessDeniedError, JsonableError, ResourceNotFoundError
@@ -68,9 +68,9 @@ from zerver.lib.response import json_success
 from zerver.lib.retention import STREAM_MESSAGE_BATCH_SIZE as RETENTION_STREAM_MESSAGE_BATCH_SIZE
 from zerver.lib.streams import create_stream_if_needed
 from zerver.lib.topic import maybe_rename_general_chat_to_empty_topic, messages_for_topic
-from zerver.lib.utils import assert_is_not_none
-from zerver.lib.users import validate_short_name_and_construct_bot_email
 from zerver.lib.user_groups import get_recursive_group_members, is_user_in_group
+from zerver.lib.users import validate_short_name_and_construct_bot_email
+from zerver.lib.utils import assert_is_not_none
 from zerver.models import (
     ChannelFolder,
     Message,

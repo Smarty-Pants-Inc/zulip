@@ -91,7 +91,7 @@ ALLOWLIST_LINE_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 # Lines that are clearly comments in JS/TS (not user-facing copy).
-COMMENT_LINE_RE = re.compile(r"^\s*(//|/\*|\*|\*/)" )
+COMMENT_LINE_RE = re.compile(r"^\s*(//|/\*|\*|\*/)")
 
 BINARY_SUFFIXES: set[str] = {
     ".png",

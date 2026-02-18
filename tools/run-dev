@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import contextlib
 import errno
 import logging
 import os
@@ -156,10 +157,8 @@ if options.clear_memcached:
 #
 # In some containerized/exec'd environments, setpgrp can fail with EPERM.
 # That's OK for local dev; stop-run-dev just won't be able to kill the full tree.
-try:
+with contextlib.suppress(PermissionError):
     os.setpgrp()
-except PermissionError:
-    pass
 
 # Save pid of parent process to the pid file. It can be used later by
 # tools/stop-run-dev to kill the server without having to find the
