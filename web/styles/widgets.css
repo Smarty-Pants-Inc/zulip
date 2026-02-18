@@ -20,14 +20,97 @@
     .widget-choices-heading {
         font-weight: 600;
     }
+
 }
 
 .sp-ai-widget {
-    border: 1px solid var(--color-border-dropdown-widget-button);
-    background-color: var(--color-background-widget-button);
+    --sp-ai-bg: var(--color-background-widget-button);
+    --sp-ai-border: var(--color-border-dropdown-widget-button);
+    --sp-ai-pad-y: 9px;
+
+    border: 1px solid var(--sp-ai-border);
+    background-color: var(--sp-ai-bg);
     border-radius: 6px;
-    padding: 10px;
+    padding: var(--sp-ai-pad-y);
     max-width: 100%;
+    position: relative;
+
+    .sp-ai-parallel-rail {
+        display: none;
+    }
+
+    /* Linked/parallel chain styling (inside the container).
+       Requirements:
+       - Bands are transparent so the message background shows through.
+       - Stripes match the widget bg exactly.
+    */
+    &.sp-ai-parallel {
+        --sp-ai-link-band: 12px;
+        --sp-ai-link-top: 0px;
+        --sp-ai-link-bottom: 0px;
+        --sp-ai-link-top-stripe: transparent;
+        --sp-ai-link-bottom-stripe: transparent;
+
+        /* Side borders should not extend into the transparent transition bands. */
+        border-left-color: transparent;
+        border-right-color: transparent;
+
+        background-color: transparent;
+        background-repeat: no-repeat;
+        background-image:
+            /* Main widget fill, with transparent top/bottom transition bands. */
+            linear-gradient(
+                to bottom,
+                transparent 0 var(--sp-ai-link-top),
+                var(--sp-ai-bg) var(--sp-ai-link-top) calc(100% - var(--sp-ai-link-bottom)),
+                transparent calc(100% - var(--sp-ai-link-bottom)) 100%
+            ),
+            /* Two thin stripes inside the top transition band (if present). */
+            linear-gradient(var(--sp-ai-link-top-stripe) 0 0),
+            linear-gradient(var(--sp-ai-link-top-stripe) 0 0),
+            /* Two thin stripes inside the bottom transition band (if present). */
+            linear-gradient(var(--sp-ai-link-bottom-stripe) 0 0),
+            linear-gradient(var(--sp-ai-link-bottom-stripe) 0 0),
+            /* Side borders only across the middle (non-transition) area. */
+            linear-gradient(var(--sp-ai-border) 0 0),
+            linear-gradient(var(--sp-ai-border) 0 0);
+        background-size:
+            100% 100%,
+            100% 2px,
+            100% 2px,
+            100% 2px,
+            100% 2px,
+            1px calc(100% - var(--sp-ai-link-top) - var(--sp-ai-link-bottom)),
+            1px calc(100% - var(--sp-ai-link-top) - var(--sp-ai-link-bottom));
+        background-position:
+            0 0,
+            0 4px,
+            0 8px,
+            0 calc(100% - 8px),
+            0 calc(100% - 4px),
+            0 var(--sp-ai-link-top),
+            100% var(--sp-ai-link-top);
+    }
+
+    &.sp-ai-parallel:not(.sp-ai-parallel-first) {
+        --sp-ai-link-top: var(--sp-ai-link-band);
+        --sp-ai-link-top-stripe: var(--sp-ai-bg);
+
+        border-top-color: transparent;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        padding-top: calc(var(--sp-ai-pad-y) + var(--sp-ai-link-band));
+    }
+
+    &.sp-ai-parallel:not(.sp-ai-parallel-last) {
+        --sp-ai-link-bottom: var(--sp-ai-link-band);
+        --sp-ai-link-bottom-stripe: var(--sp-ai-bg);
+
+        border-bottom-color: transparent;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-bottom: calc(var(--sp-ai-pad-y) + var(--sp-ai-link-band));
+    }
 
     .sp-ai-header {
         display: flex;
@@ -37,13 +120,36 @@
         gap: 8px;
     }
 
+    .sp-ai-title-wrap {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        /* Large gap between title and pills, tighter gap between pills. */
+        gap: 4px;
+        flex: 1 1 auto;
+        min-width: 12ch;
+    }
+
     .sp-ai-title {
         font-size: 1.0714em; /* 15px at 14px/em */
         font-weight: 600;
-        flex: 1 1 auto;
-        min-width: 12ch;
+        flex: 0 1 auto;
         overflow-wrap: anywhere;
+        margin-right: 8px;
     }
+
+    .sp-ai-kind-badge {
+        flex: 0 0 auto;
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-zulip-button);
+        background-color: var(--color-background-zulip-button);
+        position: relative;
+        top: -1px;
+    }
+
 
     .sp-ai-status {
         flex: 0 0 auto;
@@ -53,6 +159,105 @@
         border-radius: 999px;
         border: 1px solid var(--color-border-dropdown-widget-button);
         background-color: var(--color-background-widget-button);
+        position: relative;
+        top: -1px;
+    }
+
+    .sp-ai-footer {
+        margin-top: 8px;
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .sp-ai-btn {
+        flex: 0 0 auto;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 8px;
+        padding: 0 12px;
+        background-color: var(--color-background-widget-button);
+        font-weight: 600;
+        font-size: 0.857em;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            filter: brightness(0.98);
+        }
+    }
+
+    .sp-ai-btn-approve {
+        border-color: color-mix(in srgb, #22c55e 35%, var(--color-border-dropdown-widget-button));
+        background-color: color-mix(in srgb, #22c55e 10%, var(--color-background-widget-button));
+        color: color-mix(in srgb, #22c55e 70%, var(--color-text-default));
+    }
+
+    .sp-ai-btn-deny,
+    .sp-ai-btn-abort {
+        border-color: color-mix(in srgb, #ef4444 35%, var(--color-border-dropdown-widget-button));
+        background-color: color-mix(in srgb, #ef4444 10%, var(--color-background-widget-button));
+        color: color-mix(in srgb, #ef4444 70%, var(--color-text-default));
+    }
+
+    .sp-ai-btn-retry {
+        border-color: color-mix(in srgb, #2563eb 35%, var(--color-border-dropdown-widget-button));
+        background-color: color-mix(in srgb, #2563eb 10%, var(--color-background-widget-button));
+        color: color-mix(in srgb, #2563eb 70%, var(--color-text-default));
+    }
+
+    .sp-ai-icon-btn {
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 8px;
+        background-color: transparent;
+        color: var(--color-text-default);
+        opacity: 0.65;
+        cursor: pointer;
+
+        &:hover {
+            opacity: 0.9;
+            background-color: color-mix(in srgb, var(--color-background-widget-button) 55%, transparent);
+        }
+
+        &:active {
+            transform: translateY(0.5px);
+        }
+    }
+
+    /* Hover-reveal for copy buttons, but keep them visible on touch devices. */
+    .sp-ai-tool-section .sp-ai-icon-btn-copy,
+    .sp-ai-block .sp-ai-icon-btn-copy,
+    .sp-ai-section summary .sp-ai-icon-btn-copy {
+        opacity: 0;
+    }
+
+    @media (hover: hover) {
+        .sp-ai-tool-section:hover .sp-ai-icon-btn-copy,
+        .sp-ai-block:hover .sp-ai-icon-btn-copy,
+        .sp-ai-section summary:hover .sp-ai-icon-btn-copy,
+        .sp-ai-section summary:focus-within .sp-ai-icon-btn-copy {
+            opacity: 0.85;
+        }
+
+        .sp-ai-icon-btn-copy:hover {
+            opacity: 1;
+        }
+    }
+
+    @media (hover: none) {
+        .sp-ai-icon-btn-copy {
+            opacity: 0.85;
+        }
     }
 
     .sp-ai-status-running {
@@ -65,6 +270,14 @@
 
     .sp-ai-status-error {
         color: hsl(1deg 45% 45%);
+    }
+
+    .sp-ai-status-aborted {
+        color: hsl(30deg 32% 40%);
+    }
+
+    .sp-ai-status-denied {
+        color: hsl(10deg 45% 42%);
     }
 
     .sp-ai-caption {
@@ -95,6 +308,8 @@
     .sp-ai-section {
         margin-top: 8px;
 
+        /* Legacy collapsible sections (non-tool turns); kept for now. */
+
         summary {
             display: flex;
             flex-flow: row wrap;
@@ -104,17 +319,9 @@
             cursor: pointer;
         }
 
-        .sp-ai-copy {
-            flex: 0 0 auto;
-            border: 1px solid var(--color-border-dropdown-widget-button);
-            border-radius: 4px;
-            padding: 2px 8px;
-            background-color: var(--color-background-widget-button);
-            font-weight: 600;
-
-            &:hover {
-                filter: brightness(0.98);
-            }
+        summary .sp-ai-icon-btn {
+            width: 28px;
+            height: 28px;
         }
 
         .sp-ai-pre {
@@ -129,6 +336,469 @@
             overflow-wrap: anywhere;
             max-height: 240px;
             overflow: auto;
+        }
+    }
+
+    .sp-ai-panel-section {
+        margin-top: 6px;
+    }
+
+    /* Shared code/markdown presentation (used by both tool + non-tool turns). */
+    .sp-ai-tool-section-header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .sp-ai-tool-section-title {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.7857em;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.75;
+    }
+
+    .sp-ai-tool-codewrap {
+        margin-top: 4px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: color-mix(in srgb, var(--color-background-widget-input) 70%, transparent);
+        overflow: hidden;
+    }
+
+    .sp-ai-tool-code {
+        margin: 0;
+        padding: 10px 12px;
+        font-family: var(--monospace-font);
+        font-size: 0.857em;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 320px;
+        overflow: auto;
+    }
+
+    &[data-sp-ai-status="error"] .sp-ai-panel-section:last-of-type .sp-ai-tool-codewrap,
+    &[data-sp-ai-status="denied"] .sp-ai-panel-section:last-of-type .sp-ai-tool-codewrap {
+        border-color: color-mix(in srgb, #ef4444 25%, var(--color-border-dropdown-widget-button));
+        background-color: color-mix(in srgb, #ef4444 8%, var(--color-background-widget-input));
+    }
+
+    &[data-sp-ai-status="error"] .sp-ai-panel-section:last-of-type .sp-ai-tool-code,
+    &[data-sp-ai-status="denied"] .sp-ai-panel-section:last-of-type .sp-ai-tool-code {
+        color: color-mix(in srgb, #ef4444 70%, var(--color-text-default));
+    }
+
+    .sp-ai-blocks {
+        margin-top: 6px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+    }
+
+    .sp-ai-block {
+        border: 1px solid var(--color-border-zulip-button);
+        border-radius: 6px;
+        background-color: var(--color-background-zulip-button);
+        padding: 7px;
+    }
+
+    .sp-ai-block-stream-stdout {
+        border-left: 3px solid hsl(156deg 28% 60%);
+        padding-left: 7px;
+    }
+
+    .sp-ai-block-stream-stderr {
+        border-left: 3px solid hsl(1deg 45% 58%);
+        padding-left: 7px;
+    }
+
+    .sp-ai-block-unknown {
+        border-style: dashed;
+    }
+
+    .sp-ai-block-header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+
+    .sp-ai-block-meta {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 12ch;
+        flex: 1 1 auto;
+    }
+
+    .sp-ai-block-badge {
+        flex: 0 0 auto;
+        font-size: 0.7857em;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--color-text-default);
+        opacity: 0.8;
+    }
+
+    .sp-ai-block-title {
+        overflow-wrap: anywhere;
+    }
+
+
+    .sp-ai-table-wrap {
+        margin-top: 6px;
+        overflow-x: auto;
+    }
+
+    .sp-ai-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9285em; /* 13px at 14px/em */
+
+        th,
+        td {
+            border: 1px solid var(--color-border-widget-form-control);
+            padding: 4px 6px;
+            text-align: left;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        th {
+            background-color: var(--color-background-widget-button);
+            font-weight: 600;
+        }
+    }
+
+    @media (max-width: 480px) {
+
+        .sp-ai-status,
+        .sp-ai-kind-badge {
+            font-size: 0.75em;
+        }
+
+        .sp-ai-btn {
+            font-size: 0.8em;
+        }
+    }
+}
+
+/*
+ * Reasoning / thinking turn — inspired by Vercel AI Elements <Reasoning>.
+ * No card, no chrome. Just an inline trigger + collapsible text.
+ */
+.sp-ai-reasoning {
+    /* No border, no background — sits inline in the message. */
+
+    .sp-ai-reasoning-trigger {
+        all: unset;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        color: var(--color-text-default);
+        opacity: 0.6;
+        font-size: 0.9285em; /* ~13px */
+        line-height: 1.4;
+        transition: opacity 120ms ease;
+
+        &:hover,
+        &:focus-visible {
+            opacity: 0.9;
+        }
+
+        &[aria-expanded="true"] .sp-ai-reasoning-chevron {
+            transform: rotate(180deg);
+        }
+    }
+
+    .sp-ai-reasoning-icon {
+        flex: 0 0 auto;
+        opacity: 0.8;
+    }
+
+    .sp-ai-reasoning-chevron {
+        flex: 0 0 auto;
+        opacity: 0.55;
+        transition: transform 150ms ease;
+    }
+
+    .sp-ai-reasoning-label {
+        flex: 0 1 auto;
+    }
+
+    /* Shimmer animation for "Thinking..." while streaming. */
+    &[data-sp-ai-status="running"] .sp-ai-reasoning-label {
+        background: linear-gradient(
+            90deg,
+            var(--color-text-default) 0%,
+            var(--color-text-default) 40%,
+            color-mix(in srgb, var(--color-text-default) 40%, transparent) 50%,
+            var(--color-text-default) 60%,
+            var(--color-text-default) 100%
+        );
+        background-size: 250% 100%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        animation: sp-ai-shimmer 2s linear infinite;
+    }
+
+    @keyframes sp-ai-shimmer {
+        0% { background-position: 100% center; }
+        100% { background-position: 0% center; }
+    }
+
+    /* Collapsible content area. */
+    .sp-ai-reasoning-content {
+        overflow: visible;
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 200ms ease, opacity 150ms ease, margin 150ms ease;
+        margin-top: 0;
+    }
+
+    .sp-ai-reasoning-content[aria-hidden="false"] {
+        max-height: 2000px; /* generous upper bound; collapses to content */
+        opacity: 1;
+        margin-top: 8px;
+    }
+
+    .sp-ai-reasoning-text {
+        color: var(--color-text-default);
+        opacity: 0.6;
+        font-size: 0.9285em; /* ~13px */
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}
+
+/*
+ * POC: Tool turn styling inspired directly by Vercel AI elements (Tool header + collapsible content).
+ * Scope tightly to the tool wrapper so we can iterate without perturbing other turn kinds.
+ */
+.sp-ai-tool {
+    padding: 0;
+    /* Tool widgets manage their internal spacing; outer padding should be 0. */
+    --sp-ai-pad-y: 0px;
+
+    border-radius: 10px;
+    overflow: hidden;
+
+    /* Re-add linkage bands for parallel tool widgets (the base `.sp-ai-tool { padding: 0; }`
+       would otherwise erase the extra top/bottom padding from `.sp-ai-widget.sp-ai-parallel`). */
+    &.sp-ai-parallel:not(.sp-ai-parallel-first) {
+        padding-top: var(--sp-ai-link-band);
+    }
+
+    &.sp-ai-parallel:not(.sp-ai-parallel-last) {
+        padding-bottom: var(--sp-ai-link-band);
+    }
+
+    /* Preserve existing parallel padding behavior. */
+    &.sp-ai-parallel {
+        padding-left: 0;
+    }
+
+    summary.sp-ai-tool-summary {
+        list-style: none;
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .sp-ai-tool-summary-left {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        gap: 8px;
+        min-width: 12ch;
+        flex: 1 1 auto;
+    }
+
+    .sp-ai-tool-icon {
+        color: var(--color-text-default);
+        opacity: 0.65;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        top: -1px;
+    }
+
+    .sp-ai-tool-name {
+        font-weight: 600;
+        font-size: 0.95em;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-tool-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px 2px 6px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: var(--color-background-widget-button);
+        font-size: 0.7857em;
+        font-weight: 500;
+        line-height: 1.35;
+        position: relative;
+        top: -1px;
+    }
+
+    .sp-ai-tool-status-icon {
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &[data-sp-ai-status="pending"] .sp-ai-tool-status-icon-pending { display: inline-flex; }
+    &[data-sp-ai-status="running"] .sp-ai-tool-status-icon-running { display: inline-flex; }
+    &[data-sp-ai-status="approval_requested"] .sp-ai-tool-status-icon-approval-requested { display: inline-flex; }
+    &[data-sp-ai-status="approval_responded"] .sp-ai-tool-status-icon-approval-responded { display: inline-flex; }
+    &[data-sp-ai-status="ok"] .sp-ai-tool-status-icon-ok { display: inline-flex; }
+    &[data-sp-ai-status="error"] .sp-ai-tool-status-icon-error { display: inline-flex; }
+    &[data-sp-ai-status="aborted"] .sp-ai-tool-status-icon-aborted { display: inline-flex; }
+    &[data-sp-ai-status="denied"] .sp-ai-tool-status-icon-denied { display: inline-flex; }
+
+    /* Status-specific icon colors matching AI Elements. */
+    &[data-sp-ai-status="running"] .sp-ai-tool-status-icon-running {
+        animation: sp-ai-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    &[data-sp-ai-status="approval_requested"] .sp-ai-tool-status-icon-approval-requested { color: #ca8a04; }
+    &[data-sp-ai-status="approval_responded"] .sp-ai-tool-status-icon-approval-responded { color: #2563eb; }
+    &[data-sp-ai-status="ok"] .sp-ai-tool-status-icon-ok { color: #22c55e; }
+    &[data-sp-ai-status="error"] .sp-ai-tool-status-icon-error { color: #ef4444; }
+    &[data-sp-ai-status="aborted"] .sp-ai-tool-status-icon-aborted { color: #f97316; }
+    &[data-sp-ai-status="denied"] .sp-ai-tool-status-icon-denied { color: #f97316; }
+
+    /* Status text color to match icon. */
+    &[data-sp-ai-status="approval_requested"] .sp-ai-tool-status-text { color: #ca8a04; }
+    &[data-sp-ai-status="approval_responded"] .sp-ai-tool-status-text { color: #2563eb; }
+    &[data-sp-ai-status="ok"] .sp-ai-tool-status-text { color: #22c55e; }
+    &[data-sp-ai-status="error"] .sp-ai-tool-status-text { color: #ef4444; }
+    &[data-sp-ai-status="aborted"] .sp-ai-tool-status-text { color: #f97316; }
+    &[data-sp-ai-status="denied"] .sp-ai-tool-status-text { color: #f97316; }
+
+    @keyframes sp-ai-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    .sp-ai-tool-summary-right {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex: 0 0 auto;
+    }
+
+    .sp-ai-tool-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-default);
+        opacity: 0.55;
+        transition: transform 120ms ease;
+    }
+
+    &[open] .sp-ai-tool-chevron {
+        transform: rotate(180deg);
+    }
+
+    .sp-ai-tool-content {
+        padding: 12px 14px 14px;
+        border-top: 1px solid var(--color-border-dropdown-widget-button);
+    }
+
+
+    .sp-ai-tool-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sp-ai-tool-section-header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .sp-ai-tool-section-title {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.7857em;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        opacity: 0.75;
+    }
+
+    .sp-ai-tool-codewrap {
+        margin-top: 6px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: color-mix(in srgb, var(--color-background-widget-input) 70%, transparent);
+        overflow: hidden;
+    }
+
+    .sp-ai-tool-code {
+        margin: 0;
+        padding: 10px 12px;
+        font-family: var(--monospace-font);
+        font-size: 0.857em;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 320px;
+        overflow: auto;
+    }
+
+
+    /* Error / denied sections: red-tinted background like AI Elements destructive/10. */
+    .sp-ai-tool-section-stream-stderr .sp-ai-tool-codewrap,
+    &[data-sp-ai-status="error"] .sp-ai-tool-section:last-child .sp-ai-tool-codewrap,
+    &[data-sp-ai-status="denied"] .sp-ai-tool-section:last-child .sp-ai-tool-codewrap {
+        border-color: color-mix(in srgb, #ef4444 25%, var(--color-border-dropdown-widget-button));
+        background-color: color-mix(in srgb, #ef4444 8%, var(--color-background-widget-input));
+    }
+
+    &[data-sp-ai-status="error"] .sp-ai-tool-section:last-child .sp-ai-tool-code,
+    &[data-sp-ai-status="denied"] .sp-ai-tool-section:last-child .sp-ai-tool-code {
+        color: color-mix(in srgb, #ef4444 70%, var(--color-text-default));
+    }
+
+    @media (max-width: 480px) {
+        summary.sp-ai-tool-summary {
+            padding: 10px;
+        }
+
+        .sp-ai-tool-content {
+            padding: 10px 10px 12px;
+        }
+
+        .sp-ai-tool-name {
+            font-size: 0.9em;
         }
     }
 }

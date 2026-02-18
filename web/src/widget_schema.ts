@@ -3,6 +3,7 @@ import * as z from "zod/mini";
 import {poll_widget_extra_data_schema} from "./poll_data.ts";
 import type {PollWidgetOutboundData} from "./poll_data.ts";
 import {sp_ai_widget_extra_data_schema} from "./sp_ai_data.ts";
+import type {SpAiWidgetOutboundData} from "./sp_ai_data.ts";
 import {todo_widget_extra_data_schema} from "./todo_widget.ts";
 import type {TodoWidgetOutboundData} from "./todo_widget.ts";
 import {zform_widget_extra_data_schema} from "./zform_data.ts";
@@ -15,7 +16,7 @@ import {zform_widget_extra_data_schema} from "./zform_data.ts";
     to prevent circular dependencies.
 */
 
-export type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData;
+export type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData | SpAiWidgetOutboundData;
 
 export const any_widget_data_schema = z.discriminatedUnion("widget_type", [
     z.object({widget_type: z.literal("poll"), extra_data: poll_widget_extra_data_schema}),

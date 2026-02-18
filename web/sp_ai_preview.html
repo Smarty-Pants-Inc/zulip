@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sp_ai Widget Preview Gallery</title>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@4.7.8/dist/handlebars.min.js"></script>
+<style>
+/* ── Zulip CSS variable stubs (dark theme defaults) ── */
+:root {
+    --color-text-default: hsl(0deg 0% 87%);
+    --color-background: hsl(0deg 0% 11%);
+    --color-background-widget-input: hsl(225deg 6% 10%);
+    --color-background-widget-button: hsl(0deg 0% 0% / 20%);
+    --color-border-dropdown-widget-button: hsl(0deg 0% 0% / 60%);
+    --color-background-zulip-button: hsl(0deg 0% 0% / 20%);
+    --color-border-zulip-button: hsl(0deg 0% 0% / 60%);
+    --color-border-widget-form-control: hsl(0deg 0% 30%);
+    --monospace-font: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+    --markdown-interelement-space-px: 10px;
+    color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --color-text-default: hsl(0deg 0% 20%);
+        --color-background: hsl(0deg 0% 94%);
+        --color-background-widget-input: hsl(0deg 0% 100%);
+        --color-background-widget-button: hsl(0deg 0% 100%);
+        --color-border-dropdown-widget-button: hsl(0deg 0% 80%);
+        --color-background-zulip-button: hsl(0deg 0% 100%);
+        --color-border-zulip-button: hsl(0deg 0% 80%);
+        --color-border-widget-form-control: hsl(0deg 0% 80%);
+        color-scheme: light;
+    }
+}
+
+/* ── Page layout ── */
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-default);
+    background: var(--color-background);
+}
+.gallery { max-width: 720px; margin: 0 auto; }
+.gallery h1 { font-size: 1.6em; margin: 0 0 8px; }
+.gallery .subtitle { opacity: 0.7; margin: 0 0 32px; font-size: 0.95em; }
+.section-title { font-size: 1.25em; font-weight: 700; margin: 40px 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border-dropdown-widget-button); }
+.fixture { margin: 0 0 24px; }
+.fixture-label { font-weight: 600; margin: 0 0 2px; font-size: 0.9em; }
+.fixture-desc { opacity: 0.65; margin: 0 0 8px; font-size: 0.82em; }
+.fixture-render { /* mimics Zulip message_content width */ }
+
+/* Theme toggle */
+.theme-toggle { position: fixed; top: 12px; right: 16px; z-index: 100; }
+.theme-toggle button { border: 1px solid var(--color-border-dropdown-widget-button); background: var(--color-background-widget-button); color: var(--color-text-default); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+</style>
+<!-- Widget CSS (loaded from same dir) -->
+<link rel="stylesheet" href="styles/widgets.css">
+</head>
+<body>
+
+<div class="theme-toggle">
+    <button onclick="document.documentElement.classList.toggle('force-light'); document.documentElement.classList.toggle('force-dark');">Toggle theme</button>
+</div>
+
+<div class="gallery" id="gallery">
+    <h1>sp_ai Widget Preview Gallery</h1>
+    <p class="subtitle">Interactive preview of every widget state. Expand/collapse tool cards, hover for copy buttons, etc.</p>
+</div>
+
+<!-- Handlebars template (copy of sp_ai_widget.hbs) -->
+<script id="sp-ai-template" type="text/x-handlebars-template">
+{{#if is_thinking_kind}}
+<div class="sp-ai-reasoning" data-sp-ai-widget-version="{{version}}" data-sp-ai-status="{{status}}">
+    <button class="sp-ai-reasoning-trigger" type="button" aria-expanded="{{reasoning_expanded}}">
+        <svg class="sp-ai-reasoning-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+            <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path>
+            <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+            <path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+            <path d="M19.938 10.5a4 4 0 0 1 .585.396"></path>
+            <path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+            <path d="M19.967 17.484A4 4 0 0 1 18 18"></path>
+        </svg>
+        <span class="sp-ai-reasoning-label">{{reasoning_label}}</span>
+        <svg class="sp-ai-reasoning-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"></path>
+        </svg>
+    </button>
+    {{#if has_reasoning_text}}
+    <div class="sp-ai-reasoning-content" aria-hidden="{{reasoning_content_hidden}}">
+        <div class="sp-ai-reasoning-text">{{reasoning_text}}</div>
+    </div>
+    {{/if}}
+</div>
+{{else if is_tool_kind}}
+<details
+    class="sp-ai-tool sp-ai-widget sp-ai-kind-{{kind}}{{#if show_parallel}} sp-ai-parallel{{#if parallel_first}} sp-ai-parallel-first{{/if}}{{#if parallel_last}} sp-ai-parallel-last{{/if}}{{/if}}"
+    data-sp-ai-widget-version="{{version}}"
+    data-sp-ai-kind="{{kind}}"
+    data-sp-ai-status="{{status}}"
+    {{#if tool_open}}open{{/if}}
+>
+    {{#if show_parallel}}
+        <div class="sp-ai-parallel-rail" aria-hidden="true"></div>
+    {{/if}}
+
+    <summary class="sp-ai-tool-summary">
+        <div class="sp-ai-tool-summary-left">
+            <span class="sp-ai-tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a5 5 0 0 0-6.4 6.4l-5.6 5.6a2 2 0 0 0 2.8 2.8l5.6-5.6a5 5 0 0 0 6.4-6.4l-3 3-2.8-2.8 3-3Z"></path>
+                </svg>
+            </span>
+            <span class="sp-ai-tool-name">{{tool_title}}</span>
+            <span class="sp-ai-tool-status sp-ai-status-{{status}}">
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-pending" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-running" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-approval-requested" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-approval-responded" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-ok" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-error" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="M6 6 18 18"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-aborted" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M15 9 9 15"></path><path d="M9 9 15 15"></path></svg></span>
+                <span class="sp-ai-tool-status-icon sp-ai-tool-status-icon-denied" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M4.9 4.9 19.1 19.1"></path></svg></span>
+                <span class="sp-ai-tool-status-text">{{tool_status_label}}</span>
+            </span>
+        </div>
+        <div class="sp-ai-tool-summary-right">
+            <span class="sp-ai-tool-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+        </div>
+    </summary>
+
+    <div class="sp-ai-tool-content">
+        {{#if show_caption}}<div class="sp-ai-caption">{{caption}}</div>{{/if}}
+        {{#if show_tool_approval_actions}}
+            <div class="sp-ai-tool-approval">
+                <button class="sp-ai-action sp-ai-action-approve" type="button" data-action="approve">Approve</button>
+                <button class="sp-ai-action sp-ai-action-deny" type="button" data-action="deny">Deny</button>
+            </div>
+        {{/if}}
+        {{#if has_blocks}}
+            <div class="sp-ai-tool-sections">
+                {{#each blocks}}
+                <section class="sp-ai-tool-section sp-ai-block-{{kind}}{{#if is_stream}} sp-ai-tool-section-stream sp-ai-tool-section-stream-{{channel}}{{/if}}{{#if is_unknown}} sp-ai-tool-section-unknown{{/if}}">
+                    <div class="sp-ai-tool-section-header">
+                        <h4 class="sp-ai-tool-section-title">{{#if title}}{{title}}{{else}}{{label}}{{/if}}</h4>
+                        <button class="sp-ai-copy-block" type="button" data-copy-block="{{index}}">Copy</button>
+                    </div>
+                    {{#if is_table}}
+                    <div class="sp-ai-table-wrap"><table class="sp-ai-table">
+                        {{#if has_columns}}<thead><tr>{{#each columns}}<th>{{this}}</th>{{/each}}</tr></thead>{{/if}}
+                        <tbody>{{#each rows}}<tr>{{#each this}}<td>{{this}}</td>{{/each}}</tr>{{/each}}</tbody>
+                    </table></div>
+                    {{else}}
+                    <div class="sp-ai-tool-codewrap"><pre class="sp-ai-tool-code">{{text}}</pre></div>
+                    {{/if}}
+                </section>
+                {{/each}}
+            </div>
+        {{else}}
+            {{#if has_input}}<div class="sp-ai-tool-section"><div class="sp-ai-tool-section-header"><h4 class="sp-ai-tool-section-title">Parameters</h4><button class="sp-ai-copy" type="button" data-copy="input">Copy</button></div><div class="sp-ai-tool-codewrap"><pre class="sp-ai-tool-code">{{input}}</pre></div></div>{{/if}}
+            {{#if has_output}}<div class="sp-ai-tool-section"><div class="sp-ai-tool-section-header"><h4 class="sp-ai-tool-section-title">Result</h4><button class="sp-ai-copy" type="button" data-copy="output">Copy</button></div><div class="sp-ai-tool-codewrap"><pre class="sp-ai-tool-code">{{output}}</pre></div></div>{{/if}}
+        {{/if}}
+    </div>
+</details>
+{{else}}
+<div
+    class="sp-ai-widget sp-ai-kind-{{kind}}{{#if show_parallel}} sp-ai-parallel{{#if parallel_first}} sp-ai-parallel-first{{/if}}{{#if parallel_last}} sp-ai-parallel-last{{/if}}{{/if}}"
+    data-sp-ai-widget-version="{{version}}"
+>
+    {{#if show_parallel}}<div class="sp-ai-parallel-rail" aria-hidden="true"></div>{{/if}}
+    <div class="sp-ai-header">
+        <div class="sp-ai-title-wrap">
+            <div class="sp-ai-title">{{title}}</div>
+            <div class="sp-ai-kind-badge">{{kind_label}}</div>
+        </div>
+        <div class="sp-ai-header-controls">
+            <div class="sp-ai-status sp-ai-status-{{status}}">{{status_label}}</div>
+            {{#if show_abort}}<button class="sp-ai-action sp-ai-action-abort" type="button" data-action="abort">Abort</button>{{/if}}
+            {{#if show_retry}}<button class="sp-ai-action" type="button" data-action="retry">Retry</button>{{/if}}
+            {{#if show_approve}}<button class="sp-ai-action sp-ai-action-approve" type="button" data-action="approve">Approve</button>{{/if}}
+            {{#if show_deny}}<button class="sp-ai-action sp-ai-action-deny" type="button" data-action="deny">Deny</button>{{/if}}
+        </div>
+    </div>
+    {{#if show_caption}}<div class="sp-ai-caption">{{caption}}</div>{{/if}}
+    {{#if show_tool}}<div class="sp-ai-meta"><span class="sp-ai-meta-key">Tool</span><span class="sp-ai-meta-val">{{tool}}</span></div>{{/if}}
+    {{#if has_input}}<details class="sp-ai-section"><summary><span>Input</span><button class="sp-ai-copy" type="button" data-copy="input">Copy</button></summary><pre class="sp-ai-pre">{{input}}</pre></details>{{/if}}
+    {{#if has_output}}<details class="sp-ai-section" open><summary><span>Output</span><button class="sp-ai-copy" type="button" data-copy="output">Copy</button></summary><pre class="sp-ai-pre">{{output}}</pre></details>{{/if}}
+    {{#if has_blocks}}
+        <div class="sp-ai-blocks">
+            {{#each blocks}}
+            <section class="sp-ai-block sp-ai-block-{{kind}}{{#if is_unknown}} sp-ai-block-unknown{{/if}}{{#if is_stream}} sp-ai-block-stream sp-ai-block-stream-{{channel}}{{/if}}">
+                <div class="sp-ai-block-header"><div class="sp-ai-block-meta"><span class="sp-ai-block-badge">{{label}}</span>{{#if title}}<span class="sp-ai-block-title">{{title}}</span>{{/if}}</div><button class="sp-ai-copy-block" type="button" data-copy-block="{{index}}">Copy</button></div>
+                {{#if is_table}}<div class="sp-ai-table-wrap"><table class="sp-ai-table">{{#if has_columns}}<thead><tr>{{#each columns}}<th>{{this}}</th>{{/each}}</tr></thead>{{/if}}<tbody>{{#each rows}}<tr>{{#each this}}<td>{{this}}</td>{{/each}}</tr>{{/each}}</tbody></table></div>{{else}}{{#if is_markdown}}<div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>{{else}}<pre class="sp-ai-pre{{#if language}} sp-ai-pre-lang{{/if}}" data-language="{{language}}">{{text}}</pre>{{/if}}{{/if}}
+            </section>
+            {{/each}}
+        </div>
+    {{/if}}
+</div>
+{{/if}}
+</script>
+
+<script>
+// ── Fixture helpers ──
+function block(kind, title, text, opts) {
+    return Object.assign({ kind, label: kind.charAt(0).toUpperCase()+kind.slice(1), title, text: text||"", language: opts?.language||"", channel: opts?.channel||"", columns: opts?.columns||[], rows: opts?.rows||[], has_columns: !!(opts?.columns?.length), copy_text: text||"", is_table: kind==="table", is_stream: kind==="stream", is_unknown: false, index: 0 }, opts);
+}
+
+function toolFixture(label, desc, ctx) {
+    // Compute derived template vars exactly like sp_ai_widget.ts does.
+    ctx.is_tool_kind = true;
+    ctx.tool_title = ctx.tool || ctx.title || "tool";
+    ctx.tool_status_label = ({ok:"Completed",pending:"Pending",approval_requested:"Awaiting Approval",approval_responded:"Responded",error:"Error",aborted:"Aborted",denied:"Denied"})[ctx.status] || "Running";
+    ctx.tool_open = ctx.status === "pending" || ctx.status === "running" || ctx.status === "approval_requested" || ctx.status === "error" || ctx.status === "denied";
+    ctx.show_tool_approval_actions = ctx.status === "approval_requested";
+    ctx.has_blocks = !!(ctx.blocks && ctx.blocks.length);
+    ctx.has_input = !ctx.has_blocks && !!(ctx.input);
+    ctx.has_output = !ctx.has_blocks && !!(ctx.output);
+    ctx.show_abort = ctx.status === "running";
+    ctx.show_retry = ctx.status !== "running";
+    ctx.show_approve = false;
+    ctx.show_deny = false;
+    ctx.show_caption = !!(ctx.caption);
+    ctx.show_parallel = !!(ctx.parallel);
+    ctx.parallel_first = ctx.parallel ? !ctx.parallel.hasPrev : false;
+    ctx.parallel_last = ctx.parallel ? !ctx.parallel.hasNext : false;
+    if (ctx.blocks) ctx.blocks.forEach((b,i) => b.index = i);
+    return { label, desc, ctx };
+}
+
+function reasoningFixture(label, desc, ctx) {
+    ctx.is_thinking_kind = true;
+    ctx.is_tool_kind = false;
+    ctx.reasoning_label = ctx.status === "running" ? "Thinking\u2026" : "Thought for a few seconds";
+    ctx.reasoning_text = ctx.output || ctx.caption || "";
+    ctx.has_reasoning_text = ctx.reasoning_text !== "";
+    ctx.reasoning_expanded = ctx.status === "running" && ctx.has_reasoning_text ? "true" : "false";
+    ctx.reasoning_content_hidden = ctx.status === "running" && ctx.has_reasoning_text ? "false" : "true";
+    return { label, desc, ctx };
+}
+
+function genericFixture(label, desc, ctx) {
+    ctx.is_thinking_kind = false;
+    ctx.is_tool_kind = false;
+    ctx.kind_label = ({thinking:"Thinking",tool:"Tool",final:"Final",error:"Error",plan:"Plan",decision:"Decision",ask:"Ask",budget:"Budget",policy:"Policy"})[ctx.kind] || ctx.kind;
+    ctx.status_label = ({ok:"OK",error:"Error",aborted:"Aborted",denied:"Denied"})[ctx.status] || "Running";
+    ctx.has_blocks = !!(ctx.blocks && ctx.blocks.length);
+    ctx.has_input = !ctx.has_blocks && !!(ctx.input);
+    ctx.has_output = !ctx.has_blocks && !!(ctx.output);
+    ctx.show_abort = ctx.status === "running";
+    ctx.show_retry = ctx.status !== "running";
+    ctx.show_approve = ctx.kind === "ask";
+    ctx.show_deny = ctx.kind === "ask";
+    ctx.show_caption = !!(ctx.caption);
+    ctx.show_tool = !!(ctx.tool);
+    ctx.show_parallel = !!(ctx.parallel);
+    ctx.parallel_first = ctx.parallel ? !ctx.parallel.hasPrev : false;
+    ctx.parallel_last = ctx.parallel ? !ctx.parallel.hasNext : false;
+    if (ctx.blocks) ctx.blocks.forEach((b,i) => b.index = i);
+    return { label, desc, ctx };
+}
+
+// ── Fixtures ──
+const sections = [
+    {
+        title: "Reasoning / Thinking (AI-Elements-Inspired)",
+        fixtures: [
+            reasoningFixture("Streaming", "Currently thinking \u2014 shimmer animation active, no content yet.", {
+                version: 2, kind: "thinking", status: "running", output: "",
+            }),
+            reasoningFixture("Streaming with Content", "Thinking with partial reasoning text visible.", {
+                version: 2, kind: "thinking", status: "running",
+                output: "Let me think about this step by step.\n\nFirst, I need to understand what the user is asking for. They want a reasoning component that opens automatically when streaming begins and closes when streaming finishes.\n\nThis seems like a collapsible component with state management would be the right approach.",
+            }),
+            reasoningFixture("Completed", "Reasoning finished \u2014 collapsed by default, click to expand.", {
+                version: 2, kind: "thinking", status: "ok",
+                output: "I analyzed the problem from multiple angles. The key insight is that we need to handle both the streaming and completed states differently.\n\nFor the streaming state, the component should auto-open to show progress. For the completed state, it should collapse to save space but remain expandable.\n\nThe solution uses a simple collapsible pattern with CSS transitions for smooth open/close animations.",
+            }),
+        ],
+    },
+    {
+        title: "Tool Turn (AI-Elements-Inspired)",
+        fixtures: [
+            toolFixture("Input Streaming (Pending)", "Tool call exists but args are still streaming in.", {
+                version: 2, kind: "tool", status: "pending", title: "database_query", tool: "database_query",
+                blocks: [block("code", "Parameters", "{\n  \"database\": \"analytics\",\n  \"query\": \"SELECT COUNT(*)\"", {language:"json"})],
+            }),
+            toolFixture("Input Available (Running)", "Tool is executing; args are available.", {
+                version: 2, kind: "tool", status: "running", title: "database_query", tool: "database_query",
+                blocks: [block("code", "Parameters", '{\n  "database": "analytics",\n  "query": "SELECT COUNT(*) FROM users WHERE created_at >= ?",\n  "params": ["2024-01-01"]\n}', {language:"json"})],
+            }),
+            toolFixture("Awaiting Approval", "Tool is waiting for user approval.", {
+                version: 2, kind: "tool", status: "approval_requested", title: "functions.Bash", tool: "functions.Bash",
+                caption: "This tool requires your permission to execute.",
+                blocks: [block("code", "Parameters", '{"command": "rm -rf ./tmp"}', {language:"json"})],
+            }),
+            toolFixture("Responded", "User approved/rejected the request; tool proceeds or ends.", {
+                version: 2, kind: "tool", status: "approval_responded", title: "functions.Bash", tool: "functions.Bash",
+                blocks: [
+                    block("code", "Parameters", '{"command": "rm -rf ./tmp"}', {language:"json"}),
+                    block("text", "Approval", "Approved by sponsor."),
+                ],
+            }),
+            toolFixture("Completed", "Tool finished successfully with JSON result.", {
+                version: 2, kind: "tool", status: "ok", title: "database_query", tool: "database_query",
+                blocks: [
+                    block("code", "Parameters", '{\n  "database": "analytics",\n  "query": "SELECT * FROM users LIMIT 5"\n}', {language:"json"}),
+                    block("json", "Result", '{\n  "rowCount": 5,\n  "rows": [\n    {"id": 1, "name": "John Doe", "email": "john@example.com"},\n    {"id": 2, "name": "Jane Smith", "email": "jane@example.com"}\n  ]\n}'),
+                ],
+            }),
+            toolFixture("Error", "Tool encountered an error during execution.", {
+                version: 2, kind: "tool", status: "error", title: "database_query", tool: "database_query",
+                blocks: [
+                    block("code", "Parameters", '{"database": "analytics", "query": "DROP TABLE users"}', {language:"json"}),
+                    block("text", "Error", "Connection timeout: Unable to reach database server after 30s"),
+                ],
+            }),
+            toolFixture("Aborted", "User aborted the tool mid-execution.", {
+                version: 2, kind: "tool", status: "aborted", title: "functions.Bash", tool: "functions.Bash",
+                blocks: [block("code", "Parameters", '{"command": "npm run build"}', {language:"json"})],
+            }),
+            toolFixture("Denied", "Tool execution was denied by policy.", {
+                version: 2, kind: "tool", status: "denied", title: "functions.Bash", tool: "functions.Bash",
+                blocks: [
+                    block("code", "Parameters", '{"command": "rm -rf /"}', {language:"json"}),
+                    block("text", "Denial Reason", "This tool was denied: destructive command blocked by policy."),
+                ],
+            }),
+            toolFixture("With Stdout + Stderr Streams", "Tool that produced both stdout and stderr output.", {
+                version: 2, kind: "tool", status: "ok", title: "functions.Bash", tool: "functions.Bash",
+                blocks: [
+                    block("code", "Parameters", '{"command": "npm test"}', {language:"json"}),
+                    block("stream", "Stdout", "PASS src/utils.test.ts\nPASS src/bridge.test.ts\n\nTest Suites: 2 passed, 2 total\nTests:       14 passed, 14 total", {channel:"stdout"}),
+                    block("stream", "Stderr", "warning: optional peer dependency not installed", {channel:"stderr"}),
+                ],
+            }),
+            toolFixture("With Table Result", "Tool returning structured tabular data.", {
+                version: 2, kind: "tool", status: "ok", title: "database_query", tool: "database_query",
+                blocks: [
+                    block("code", "Parameters", '{"query": "SELECT name, role FROM team"}', {language:"json"}),
+                    block("table", "Result", "", {columns: ["Name","Role","Status"], rows: [["Alice","Engineer","Active"],["Bob","Designer","Active"],["Charlie","PM","On Leave"]]}),
+                ],
+            }),
+            toolFixture("With Diff Result", "Tool that produced a code diff.", {
+                version: 2, kind: "tool", status: "ok", title: "functions.Edit", tool: "functions.Edit",
+                blocks: [
+                    block("code", "Parameters", '{"file": "src/bridge.ts", "old_string": "const x = 1;", "new_string": "const x = 42;"}', {language:"json"}),
+                    block("diff", "Diff", "--- a/src/bridge.ts\n+++ b/src/bridge.ts\n@@ -10,1 +10,1 @@\n-const x = 1;\n+const x = 42;", {language:"diff"}),
+                ],
+            }),
+        ],
+    },
+    {
+        title: "Tool Turn — Parallel Group",
+        fixtures: [
+            toolFixture("Parallel 1/2 (Running)", "First tool in a parallel group.", {
+                version: 2, kind: "tool", status: "running", title: "functions.WebSearch", tool: "functions.WebSearch",
+                blocks: [block("code", "Parameters", '{"query": "zulip widget screenshots", "num_results": 3}', {language:"json"})],
+                parallel: {groupId: "step-abc", index: 0, count: 2, hasPrev: false, hasNext: true},
+            }),
+            toolFixture("Parallel 2/2 (Completed)", "Second tool in the same parallel group.", {
+                version: 2, kind: "tool", status: "ok", title: "functions.FetchWebpage", tool: "functions.FetchWebpage",
+                blocks: [block("text", "Result", "Fetched page and normalized 2,451 chars of markdown.")],
+                parallel: {groupId: "step-abc", index: 1, count: 2, hasPrev: true, hasNext: false},
+            }),
+        ],
+    },
+    {
+        title: "Non-Tool Turns",
+        fixtures: [
+            genericFixture("Final (OK)", "Agent's final response with output.", {
+                version: 2, kind: "final", status: "ok", title: "Final response", caption: "All checks passed", output: "The migration is complete. 3 files updated, 0 errors.",
+            }),
+            genericFixture("Error", "The agent run ended with an error.", {
+                version: 2, kind: "error", status: "error", title: "Command failed", caption: "Exit code 127", output: "bash: foobar: command not found",
+            }),
+            genericFixture("Plan", "Agent proposed an execution plan.", {
+                version: 2, kind: "plan", status: "ok", title: "Execution plan", output: "1) Seed fixture messages\n2) Capture screenshots\n3) Review output\n4) Iterate on styling",
+            }),
+            genericFixture("Decision", "Agent recorded a design decision.", {
+                version: 2, kind: "decision", status: "ok", title: "Decision recorded", caption: "Use Zulip screenshot tooling", output: "Selected existing puppeteer capture scripts for parity with upstream docs screenshots.",
+            }),
+            genericFixture("Ask (Approval Request)", "Agent is requesting permission from the user.", {
+                version: 2, kind: "ask", status: "denied", title: "Permission request", caption: "Tool requires approval", output: "Run `rm -rf /` in a protected path?",
+            }),
+            genericFixture("Budget", "Run blocked by budget limits.", {
+                version: 2, kind: "budget", status: "error", title: "Budget limit reached", caption: "Daily run cap hit", output: "Daily budget reached for this agent. Please retry tomorrow.",
+            }),
+            genericFixture("Policy", "Run blocked by access policy.", {
+                version: 2, kind: "policy", status: "error", title: "Policy blocked", caption: "Tool namespace denied", output: "This action is blocked by policy: unsupported tool namespace.",
+            }),
+        ],
+    },
+];
+
+// ── Render ──
+const template = Handlebars.compile(document.getElementById("sp-ai-template").innerHTML);
+const gallery = document.getElementById("gallery");
+
+for (const section of sections) {
+    const h2 = document.createElement("div");
+    h2.className = "section-title";
+    h2.textContent = section.title;
+    gallery.appendChild(h2);
+
+    for (const fixture of section.fixtures) {
+        const div = document.createElement("div");
+        div.className = "fixture";
+        div.innerHTML =
+            '<div class="fixture-label">' + fixture.label + '</div>' +
+            '<div class="fixture-desc">' + fixture.desc + '</div>' +
+            '<div class="fixture-render">' + template(fixture.ctx) + '</div>';
+        gallery.appendChild(div);
+    }
+}
+
+// Stub action buttons so they log to console.
+document.addEventListener("click", (e) => {
+    // Reasoning trigger toggle.
+    const reasoningTrigger = e.target.closest("button.sp-ai-reasoning-trigger");
+    if (reasoningTrigger) {
+        e.preventDefault();
+        const expanded = reasoningTrigger.getAttribute("aria-expanded") === "true";
+        reasoningTrigger.setAttribute("aria-expanded", String(!expanded));
+        const content = reasoningTrigger.closest(".sp-ai-reasoning").querySelector(".sp-ai-reasoning-content");
+        if (content) content.setAttribute("aria-hidden", String(expanded));
+        return;
+    }
+
+    const btn = e.target.closest("button[data-action]");
+    if (btn) {
+        e.preventDefault();
+        console.log("sp_ai action:", btn.dataset.action);
+    }
+    const copyBlock = e.target.closest("button[data-copy-block]");
+    if (copyBlock) {
+        e.preventDefault();
+        console.log("copy block:", copyBlock.dataset.copyBlock);
+    }
+    const copyBtn = e.target.closest("button[data-copy]");
+    if (copyBtn) {
+        e.preventDefault();
+        console.log("copy:", copyBtn.dataset.copy);
+    }
+});
+</script>
+</body>
+</html>

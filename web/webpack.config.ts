@@ -193,7 +193,7 @@ const config = (
                 },
                 // load fonts and files
                 {
-                    test: /\.(eot|jpg|svg|ttf|otf|png|webp|woff2?)$/,
+                    test: /\.(eot|jpg|svg|ttf|otf|png|webp|woff2?|wasm)$/,
                     type: "asset/resource",
                 },
             ],
@@ -231,6 +231,13 @@ const config = (
         },
         plugins,
         devServer: {
+            // Expose oniguruma WASM for `@wooorm/starry-night`.
+            static: [
+                {
+                    directory: path.resolve(import.meta.dirname, "../node_modules/vscode-oniguruma/release"),
+                    publicPath: "/webpack/onig/",
+                },
+            ],
             client: {
                 overlay: {
                     runtimeErrors: false,
@@ -250,8 +257,18 @@ const config = (
                 "Access-Control-Allow-Origin": "*",
                 "Timing-Allow-Origin": "*",
             },
-            setupMiddlewares: (middlewares) =>
-                middlewares.filter((middleware) => middleware.name !== "cross-origin-header-check"),
+            setupMiddlewares: (middlewares, devServer) => {
+                // Serve oniguruma WASM at a stable URL for `@wooorm/starry-night`.
+                // We avoid relying on webpack's native WASM support here.
+                devServer?.app?.get("/webpack/onig/onig.wasm", (_req, res) => {
+                    res.type("application/wasm");
+                    res.sendFile(
+                        path.resolve(import.meta.dirname, "../node_modules/vscode-oniguruma/release/onig.wasm"),
+                    );
+                });
+
+                return middlewares.filter((middleware) => middleware.name !== "cross-origin-header-check");
+            },
         },
         infrastructureLogging: {
             level: "warn",

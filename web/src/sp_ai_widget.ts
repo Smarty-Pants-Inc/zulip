@@ -3,8 +3,12 @@ import * as z from "zod/mini";
 
 import render_widgets_sp_ai_widget from "../templates/widgets/sp_ai_widget.hbs";
 
+import $ from "jquery";
+
 import * as blueslip from "./blueslip.ts";
 import type {Message} from "./message_store.ts";
+import * as markdown from "./markdown.ts";
+import {update_elements as update_rendered_markdown_elements} from "./rendered_markdown.ts";
 import {
     sp_ai_widget_inbound_event_schema,
     type SpAiWidgetExtraData,
@@ -16,26 +20,339 @@ import type {AnyWidgetData} from "./widget_schema.ts";
 const widget_state_schema = z.object({
     version: z.int().check(z.nonnegative()),
     display: z.enum(["card_only", "card_with_caption"]),
+    kind: z.enum(["thinking", "tool", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
     title: z.string(),
     caption: z.string(),
-    status: z.enum(["running", "ok", "error"]),
+    status: z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"]),
     tool: z.string(),
     input: z.string(),
     output: z.string(),
+    blocks: z.array(
+        z.object({
+            index: z.number(),
+            kind: z.string(),
+            label: z.string(),
+            title: z.string(),
+            text: z.string(),
+            language: z.string(),
+            channel: z.enum(["stdout", "stderr", ""]),
+            columns: z.array(z.string()),
+            rows: z.array(z.array(z.string())),
+            has_columns: z.boolean(),
+            copy_text: z.string(),
+            is_table: z.boolean(),
+            is_stream: z.boolean(),
+            is_unknown: z.boolean(),
+        }),
+    ),
+    parallel: z.optional(
+        z.object({
+            groupId: z.string(),
+            index: z.number(),
+            count: z.number(),
+            hasPrev: z.boolean(),
+            hasNext: z.boolean(),
+        }),
+    ),
 });
 
 type WidgetState = z.infer<typeof widget_state_schema>;
 
+type WidgetAction = "abort" | "retry" | "approve" | "deny";
+
+function stringify_unknown(value: unknown): string {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
+function try_pretty_json(text: string): string | undefined {
+    const trimmed = String(text || "").trim();
+    if (!trimmed) return undefined;
+
+    const looks_like_json =
+        (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    if (!looks_like_json) return undefined;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        return JSON.stringify(parsed, null, 2);
+    } catch {
+        return undefined;
+    }
+}
+
+//  Syntax highlighting (GitHub-style) via `@wooorm/starry-night`.
+// Lazy-loaded so the initial Zulip bundle isn't penalized.
+let starry_night_promise: Promise<any> | undefined;
+
+async function get_starry_night(): Promise<any> {
+    if (starry_night_promise) {
+        return starry_night_promise;
+    }
+
+    starry_night_promise = (async () => {
+        const [{common, createStarryNight}, {toDom}] = await Promise.all([
+            import("@wooorm/starry-night"),
+            import("hast-util-to-dom"),
+        ]);
+
+        const starryNight = await createStarryNight(common, {
+            getOnigurumaUrlFetch() {
+                // Served by webpack-dev-server (see webpack.config.ts devServer.static).
+                return new URL("/webpack/onig/onig.wasm", window.location.href);
+            },
+        });
+
+        return {starryNight, toDom};
+    })();
+
+    return starry_night_promise;
+}
+
+async function highlight_code_in_element(elem: HTMLElement, language: string): Promise<void> {
+    const lang = String(language || "").trim();
+    if (!lang) return;
+
+    const text = elem.textContent ?? "";
+    if (!text) return;
+
+    const {starryNight, toDom} = await get_starry_night();
+    const scope = starryNight.flagToScope(lang.toLowerCase());
+    if (!scope) return;
+
+    const tree = starryNight.highlight(text, scope);
+    const frag = toDom(tree, {fragment: true});
+    elem.replaceChildren(frag);
+    elem.setAttribute("data-highlight", "starry-night");
+}
+
+async function apply_sp_ai_highlighting(root: HTMLElement): Promise<void> {
+    const code_nodes = Array.from(root.querySelectorAll<HTMLElement>(
+        ".sp-ai-tool-code[data-language], .sp-ai-pre[data-language]",
+    ));
+
+    for (const node of code_nodes) {
+        if (node.getAttribute("data-highlight") === "starry-night") continue;
+        const lang = node.getAttribute("data-language") ?? "";
+        await highlight_code_in_element(node, lang);
+    }
+
+    // Highlight code blocks inside rendered markdown.
+    const md_code_nodes = Array.from(root.querySelectorAll<HTMLElement>(
+        ".sp-ai-markdown.rendered_markdown div.codehilite code",
+    ));
+
+    for (const node of md_code_nodes) {
+        if (node.getAttribute("data-highlight") === "starry-night") continue;
+        const container = node.closest<HTMLElement>("div.codehilite");
+        const pretty = (container?.getAttribute("data-code-language") ?? "").trim();
+        const flag = pretty ? pretty.toLowerCase().replaceAll(" ", "") : "";
+        await highlight_code_in_element(node, flag);
+    }
+}
+
+function kind_label(kind: WidgetState["kind"]): string {
+    if (kind === "thinking") return "Thinking";
+    if (kind === "tool") return "Tool";
+    if (kind === "final") return "Final";
+    if (kind === "error") return "Error";
+    if (kind === "plan") return "Plan";
+    if (kind === "decision") return "Decision";
+    if (kind === "ask") return "Ask";
+    if (kind === "budget") return "Budget";
+    return "Policy";
+}
+
+function block_label(kind: string, channel: "stdout" | "stderr" | ""): string {
+    if (kind === "markdown") return "Markdown";
+    if (kind === "text") return "Text";
+    if (kind === "code") return "Code";
+    if (kind === "diff") return "Diff";
+    if (kind === "json") return "JSON";
+    if (kind === "table") return "Table";
+    if (kind === "stream" && channel === "stderr") return "Stderr";
+    if (kind === "stream") return "Stdout";
+    return "Block";
+}
+
+function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
+    if (!Array.isArray(raw_blocks)) {
+        return [];
+    }
+
+    const blocks: WidgetState["blocks"] = [];
+
+    for (const [index, raw] of raw_blocks.entries()) {
+        if (!raw || typeof raw !== "object") {
+            continue;
+        }
+
+        const block = raw as Record<string, unknown>;
+        const kind = typeof block["kind"] === "string" ? block["kind"] : "unknown";
+        const title = typeof block["title"] === "string" ? block["title"] : "";
+
+        if (kind === "table") {
+            const columns = Array.isArray(block["columns"])
+                ? block["columns"].map((value) => (typeof value === "string" ? value : stringify_unknown(value)))
+                : [];
+            const rows = Array.isArray(block["rows"])
+                ? block["rows"].map((row) =>
+                      Array.isArray(row)
+                          ? row.map((value) => (typeof value === "string" ? value : stringify_unknown(value)))
+                          : [stringify_unknown(row)],
+                  )
+                : [];
+
+            blocks.push({
+                index,
+                kind,
+                label: block_label(kind, ""),
+                title,
+                text: "",
+                language: "",
+                channel: "",
+                columns,
+                rows,
+                has_columns: columns.length > 0,
+                copy_text: stringify_unknown({columns, rows}),
+                is_table: true,
+                is_stream: false,
+                is_unknown: false,
+            });
+            continue;
+        }
+
+        const channel =
+            kind === "stream" && (block["channel"] === "stdout" || block["channel"] === "stderr")
+                ? block["channel"]
+                : "";
+
+        let text = "";
+        let language = "";
+        let is_unknown = false;
+
+        if (kind === "markdown" || kind === "text" || (kind === "stream" && channel !== "")) {
+            text = typeof block["text"] === "string" ? block["text"] : stringify_unknown(block["text"]);
+        } else if (kind === "code") {
+            text = typeof block["code"] === "string" ? block["code"] : stringify_unknown(block["code"]);
+            language = typeof block["language"] === "string" ? block["language"] : "";
+
+            // Make JSON blocks look much closer to AI Elements (pretty-printed).
+            if (language === "json") {
+                const pretty = try_pretty_json(text);
+                if (pretty !== undefined) {
+                    text = pretty;
+                }
+            }
+        } else if (kind === "diff") {
+            text = typeof block["diff"] === "string" ? block["diff"] : stringify_unknown(block["diff"]);
+            language = typeof block["language"] === "string" ? block["language"] : "diff";
+        } else if (kind === "json") {
+            if (typeof block["text"] === "string") {
+                text = block["text"];
+                const pretty = try_pretty_json(text);
+                if (pretty !== undefined) {
+                    text = pretty;
+                }
+            } else if (Object.hasOwn(block, "json")) {
+                text = stringify_unknown(block["json"]);
+            } else {
+                text = stringify_unknown(block);
+            }
+            language = "json";
+        } else {
+            text = stringify_unknown(block);
+            is_unknown = true;
+        }
+
+        blocks.push({
+            index,
+            kind,
+            label: block_label(kind, channel),
+            title,
+            text,
+            language,
+            channel,
+            columns: [],
+            rows: [],
+            has_columns: false,
+            copy_text: text,
+            is_table: false,
+            is_stream: kind === "stream" && channel !== "",
+            is_unknown,
+        });
+    }
+
+    return blocks;
+}
+
 function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
+    const ed: any = extra_data || {};
+
+    // v2 turn payload, if present.
+    const turn: any = ed.turn && typeof ed.turn === "object" ? ed.turn : null;
+
+    const kind = String(turn?.kind || "") as WidgetState["kind"];
+    const statusRaw = String(turn?.status || ed.status || "running");
+
     const parsed = widget_state_schema.safeParse({
-        version: extra_data.version ?? 1,
-        display: extra_data.display ?? "card_only",
-        title: extra_data.title ?? "Agent output",
-        caption: extra_data.caption ?? "",
-        status: extra_data.status ?? "running",
-        tool: extra_data.tool ?? "",
-        input: extra_data.input ?? "",
-        output: extra_data.output ?? "",
+        version: ed.version ?? 2,
+        display: ed.display ?? "card_only",
+
+        kind:
+            kind === "thinking" ||
+            kind === "tool" ||
+            kind === "final" ||
+            kind === "error" ||
+            kind === "plan" ||
+            kind === "decision" ||
+            kind === "ask" ||
+            kind === "budget" ||
+            kind === "policy"
+                ? kind
+                : "final",
+
+        title: turn?.title ?? ed.title ?? "Agent output",
+        caption: turn?.subtitle ?? ed.caption ?? "",
+
+        status:
+            statusRaw === "pending" ||
+            statusRaw === "ok" ||
+            statusRaw === "error" ||
+            statusRaw === "aborted" ||
+            statusRaw === "denied" ||
+            statusRaw === "approval_requested" ||
+            statusRaw === "approval_responded" ||
+            statusRaw === "running"
+                ? statusRaw
+                : "running",
+
+        tool: turn?.tool?.name ?? ed.tool ?? "",
+        input: turn?.tool?.argsText ?? ed.input ?? "",
+        output: turn?.output ?? ed.output ?? "",
+        blocks: normalize_turn_blocks(turn?.blocks),
+
+        parallel: (() => {
+            const p: any = turn?.parallel;
+            if (!p || typeof p !== "object") return undefined;
+
+            const groupId = typeof p.groupId === "string" ? p.groupId : "";
+            const index = typeof p.index === "number" ? p.index : 0;
+            const count = typeof p.count === "number" ? p.count : Math.max(1, index + 1);
+            const hasPrev = typeof p.hasPrev === "boolean" ? p.hasPrev : index > 0;
+            const hasNext = typeof p.hasNext === "boolean" ? p.hasNext : index < count - 1;
+
+            if (!groupId) return undefined;
+            return {groupId, index, count, hasPrev, hasNext};
+        })(),
     });
 
     if (parsed.success) {
@@ -45,24 +362,40 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
     blueslip.warn("sp_ai widget: invalid extra_data", {error: parsed.error});
 
     return {
-        version: 1,
+        version: 2,
         display: "card_only",
+        kind: "final",
         title: "Agent output",
         caption: "",
         status: "running",
         tool: "",
         input: "",
         output: "",
+        blocks: [],
+        parallel: undefined,
     };
 }
 
 function status_label(status: WidgetState["status"]): string {
-    if (status === "ok") {
-        return "OK";
-    }
-    if (status === "error") {
-        return "Error";
-    }
+    if (status === "ok") return "OK";
+    if (status === "pending") return "Pending";
+    if (status === "approval_requested") return "Awaiting Approval";
+    if (status === "approval_responded") return "Responded";
+    if (status === "aborted") return "Aborted";
+    if (status === "error") return "Error";
+    if (status === "denied") return "Denied";
+    return "Running";
+}
+
+function tool_status_label(status: WidgetState["status"]): string {
+    // Mirror Vercel AI elements wording for tool cards.
+    if (status === "ok") return "Completed";
+    if (status === "pending") return "Pending";
+    if (status === "approval_requested") return "Awaiting Approval";
+    if (status === "approval_responded") return "Responded";
+    if (status === "aborted") return "Aborted";
+    if (status === "error") return "Error";
+    if (status === "denied") return "Denied";
     return "Running";
 }
 
@@ -82,9 +415,12 @@ async function copy_text(text: string): Promise<void> {
     }
 }
 
-export function activate(opts: {$elem: JQuery; any_data: AnyWidgetData; message: Message}): (
-    events: Event[],
-) => void {
+export function activate(opts: {
+    $elem: JQuery;
+    any_data: AnyWidgetData;
+    message: Message;
+    callback: (data: {type: "action"; action: WidgetAction}) => void;
+}): (events: Event[]) => void {
     assert(opts.any_data.widget_type === "sp_ai");
 
     if (opts.any_data.extra_data === null) {
@@ -97,27 +433,128 @@ export function activate(opts: {$elem: JQuery; any_data: AnyWidgetData; message:
     let state: WidgetState = normalize_extra_data(opts.any_data.extra_data);
 
     function render(): void {
+        const blocks_for_template = state.blocks.map((b) => {
+            if (b.kind === "markdown") {
+                // Client-side markdown rendering, then enhance with rendered_markdown.ts
+                // (spoilers, code block copy buttons, etc.).
+                const rendered = markdown.render(b.text).content;
+                return {
+                    ...b,
+                    is_markdown: true,
+                    markdown_html: rendered,
+                };
+            }
+
+            return {
+                ...b,
+                is_markdown: false,
+                markdown_html: "",
+            };
+        });
+
         const html = render_widgets_sp_ai_widget({
             ...state,
+            kind_label: kind_label(state.kind),
             status_label: status_label(state.status),
+            show_status_pill: state.kind !== "error",
+            tool_status_label: tool_status_label(state.status),
+            is_thinking_kind: state.kind === "thinking",
+            reasoning_label: state.status === "running" ? "Thinking\u2026" : "Thought for a few seconds",
+            reasoning_text: state.output || state.caption || "",
+            has_reasoning_text: (state.output || state.caption || "") !== "",
+            // Auto-expand while streaming content; collapsed when done.
+            reasoning_expanded: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "true" : "false",
+            reasoning_content_hidden: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "false" : "true",
+            is_tool_kind: state.kind === "tool",
+            tool_title: state.tool || state.title,
+            tool_open:
+                state.kind === "tool" &&
+                (state.status === "pending" ||
+                    state.status === "running" ||
+                    state.status === "approval_requested" ||
+                    state.status === "error" ||
+                    state.status === "denied"),
+            show_tool_approval_actions: state.kind === "tool" && state.status === "approval_requested",
             show_caption: state.display === "card_with_caption" && state.caption !== "",
             show_tool: state.tool !== "",
-            has_input: state.input !== "",
-            has_output: state.output !== "",
+            has_input: state.blocks.length === 0 && state.input !== "",
+            has_output: state.blocks.length === 0 && state.output !== "",
+            has_blocks: state.blocks.length > 0,
+            blocks: blocks_for_template,
+            show_abort: state.status === "running",
+            show_retry: state.status !== "running",
+            show_approve: state.kind === "ask",
+            show_deny: state.kind === "ask",
+            has_widget_actions: true,
+            show_parallel: state.parallel !== undefined,
+            parallel_first: state.parallel ? !state.parallel.hasPrev : false,
+            parallel_last: state.parallel ? !state.parallel.hasNext : false,
         });
 
         opts.$elem.html(html);
 
-        opts.$elem.find("button.sp-ai-copy").on("click", (e) => {
+        // Enhance rendered markdown blocks (spoilers, codeblock copy buttons, etc.).
+        opts.$elem.find(".sp-ai-markdown.rendered_markdown").each(function () {
+            update_rendered_markdown_elements($(this));
+        });
+
+        // Apply syntax highlighting to all code blocks inside this widget.
+        void apply_sp_ai_highlighting(opts.$elem[0] as HTMLElement);
+
+        // Reasoning trigger: toggle collapsible content.
+        opts.$elem.find("button.sp-ai-reasoning-trigger").on("click", (e) => {
+            e.stopPropagation();
+            const trigger = e.currentTarget as HTMLElement;
+            const expanded = trigger.getAttribute("aria-expanded") === "true";
+            trigger.setAttribute("aria-expanded", String(!expanded));
+            const content = trigger.closest(".sp-ai-reasoning")?.querySelector(".sp-ai-reasoning-content");
+            if (content) {
+                content.setAttribute("aria-hidden", String(expanded));
+            }
+        });
+
+        opts.$elem.find("button[data-copy]").on("click", (e) => {
+            e.preventDefault();
             e.stopPropagation();
 
             const target = $(e.currentTarget).attr("data-copy") ?? "";
             const text = target === "input" ? state.input : target === "output" ? state.output : "";
             void copy_text(text);
         });
+
+        opts.$elem.find("button[data-copy-block]").on("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const raw_index = $(e.currentTarget).attr("data-copy-block") ?? "";
+            const index = Number.parseInt(raw_index, 10);
+            if (!Number.isInteger(index)) {
+                return;
+            }
+
+            const block = state.blocks.find((item) => item.index === index);
+            if (!block) {
+                return;
+            }
+
+            void copy_text(block.copy_text);
+        });
+
+        opts.$elem.find("button[data-action]").on("click", (e) => {
+            e.stopPropagation();
+            const action = $(e.currentTarget).attr("data-action") ?? "";
+            if (action === "abort" || action === "retry" || action === "approve" || action === "deny") {
+                opts.callback({type: "action", action});
+            }
+        });
     }
 
     function apply_inbound_event(evt: SpAiWidgetInboundEvent): void {
+        if (evt.type === "set_extra_data") {
+            const extra: any = evt.extra_data;
+            state = normalize_extra_data(extra);
+            return;
+        }
+
         if (evt.type === "set_status") {
             state = {...state, status: evt.status};
             return;
