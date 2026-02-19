@@ -10,6 +10,33 @@ export type SpAiWidgetOutboundData = {
 // Keep this schema permissive and versioned so we can iterate quickly without
 // crashing the message list when payloads evolve.
 
+export const sp_ai_subagent_schema = z.object({
+    // Keep these permissive; the widget will apply defaults if fields are absent.
+    type: z.optional(z.string()),
+    description: z.optional(z.string()),
+    status: z.optional(z.string()),
+    toolCount: z.optional(z.int().check(z.nonnegative())),
+    totalTokens: z.optional(z.int().check(z.nonnegative())),
+    durationMs: z.optional(z.int().check(z.nonnegative())),
+    agentURL: z.optional(z.string()),
+    model: z.optional(z.string()),
+    error: z.optional(z.string()),
+});
+
+export const sp_ai_subagent_group_block_schema = z.catchall(
+    z.object({
+        kind: z.literal("subagent_group"),
+        title: z.optional(z.string()),
+        // Optional for backward compatibility; when missing, the widget should fall
+        // back to the existing text/list rendering.
+        agents: z.optional(z.array(sp_ai_subagent_schema)),
+        // Optional legacy fallback (not required by the spec, but lets us display a
+        // plain-text representation when present).
+        text: z.optional(z.string()),
+    }),
+    z.unknown(),
+);
+
 const sp_ai_turn_tool_schema = z.catchall(
     z.object({
         name: z.string(),
@@ -94,6 +121,7 @@ const sp_ai_known_turn_block_schema = z.union([
         }),
         z.unknown(),
     ),
+    sp_ai_subagent_group_block_schema,
 ]);
 
 const sp_ai_unknown_turn_block_schema = z.catchall(
@@ -105,12 +133,35 @@ const sp_ai_unknown_turn_block_schema = z.catchall(
     z.unknown(),
 );
 
-const sp_ai_turn_block_schema = z.union([sp_ai_known_turn_block_schema, sp_ai_unknown_turn_block_schema]);
+const sp_ai_turn_block_schema = z.union([
+    sp_ai_known_turn_block_schema,
+    sp_ai_unknown_turn_block_schema,
+]);
 
 const sp_ai_turn_schema = z.catchall(
     z.object({
-        kind: z.enum(["thinking", "tool", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
-        status: z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"]),
+        kind: z.enum([
+            "thinking",
+            "tool",
+            "final",
+            "error",
+            "plan",
+            "decision",
+            "ask",
+            "budget",
+            "policy",
+            "subagent_group",
+        ]),
+        status: z.enum([
+            "pending",
+            "running",
+            "ok",
+            "error",
+            "aborted",
+            "denied",
+            "approval_requested",
+            "approval_responded",
+        ]),
         title: z.string(),
         subtitle: z.optional(z.string()),
         output: z.optional(z.string()),
@@ -128,7 +179,18 @@ export const sp_ai_widget_extra_data_schema = z.catchall(
         display: z.optional(z.enum(["card_only", "card_with_caption"])),
         title: z.optional(z.string()),
         caption: z.optional(z.string()),
-        status: z.optional(z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"])),
+        status: z.optional(
+            z.enum([
+                "pending",
+                "running",
+                "ok",
+                "error",
+                "aborted",
+                "denied",
+                "approval_requested",
+                "approval_responded",
+            ]),
+        ),
         tool: z.optional(z.string()),
         input: z.optional(z.string()),
         output: z.optional(z.string()),
@@ -146,7 +208,19 @@ export const sp_ai_widget_inbound_event_schema = z.discriminatedUnion("type", [
     z.object({type: z.literal("set_extra_data"), extra_data: z.unknown()}),
 
     // v1: direct mutations.
-    z.object({type: z.literal("set_status"), status: z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"])}),
+    z.object({
+        type: z.literal("set_status"),
+        status: z.enum([
+            "pending",
+            "running",
+            "ok",
+            "error",
+            "aborted",
+            "denied",
+            "approval_requested",
+            "approval_responded",
+        ]),
+    }),
     z.object({type: z.literal("set_output"), output: z.string()}),
     z.object({type: z.literal("append_output"), chunk: z.string()}),
 ]);
