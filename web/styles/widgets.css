@@ -633,6 +633,53 @@
         overflow: auto;
     }
 
+    .sp-ai-block-list {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sp-ai-block-list-item {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: color-mix(in srgb, var(--color-background-widget-input) 60%, transparent);
+        font-family: inherit;
+        font-size: 0.9em;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-context-usage {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sp-ai-context-usage-bar {
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: color-mix(in srgb, var(--color-background-widget-input) 70%, transparent);
+        overflow: hidden;
+    }
+
+    .sp-ai-context-usage-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #22c55e 0%, #f59e0b 60%, #ef4444 100%);
+        opacity: 0.85;
+    }
+
+    .sp-ai-context-usage-summary {
+        font-size: 0.857em;
+        opacity: 0.85;
+    }
+
     &[data-sp-ai-status="error"] .sp-ai-panel-section:last-of-type .sp-ai-tool-codewrap,
     &[data-sp-ai-status="denied"] .sp-ai-panel-section:last-of-type .sp-ai-tool-codewrap {
         border-color: color-mix(in srgb, #ef4444 25%, var(--color-border-dropdown-widget-button));
