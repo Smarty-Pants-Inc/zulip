@@ -225,6 +225,45 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
         const kind = typeof block["kind"] === "string" ? block["kind"] : "unknown";
         const title = typeof block["title"] === "string" ? block["title"] : "";
 
+        const push_generic_block = (data: {
+            text: string;
+            language?: string;
+            channel?: "stdout" | "stderr" | "";
+            is_unknown?: boolean;
+            list_items?: string[];
+            has_context_usage_percent?: boolean;
+            context_usage_percent?: number;
+        }): void => {
+            const language = data.language ?? "";
+            const channel = data.channel ?? "";
+            const list_items = data.list_items ?? [];
+            const has_context_usage_percent = data.has_context_usage_percent ?? false;
+            const context_usage_percent = data.context_usage_percent ?? 0;
+
+            blocks.push({
+                index,
+                kind,
+                label: block_label(kind, channel),
+                title,
+                text: data.text,
+                language,
+                channel,
+                columns: [],
+                rows: [],
+                has_columns: false,
+                copy_text: data.text,
+                is_table: false,
+                is_stream: kind === "stream" && channel !== "",
+                is_unknown: data.is_unknown ?? false,
+                is_context_usage: kind === "context_usage",
+                has_context_usage_percent,
+                context_usage_percent,
+                has_list_items: list_items.length > 0,
+                list_items,
+                is_file_tree: kind === "file_tree",
+            });
+        };
+
         if (kind === "table") {
             const columns = Array.isArray(block["columns"])
                 ? block["columns"].map((value) => (typeof value === "string" ? value : stringify_unknown(value)))
@@ -252,6 +291,12 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
                 is_table: true,
                 is_stream: false,
                 is_unknown: false,
+                is_context_usage: false,
+                has_context_usage_percent: false,
+                context_usage_percent: 0,
+                has_list_items: false,
+                list_items: [],
+                is_file_tree: false,
             });
             continue;
         }
@@ -264,6 +309,9 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
         let text = "";
         let language = "";
         let is_unknown = false;
+        let list_items: string[] = [];
+        let has_context_usage_percent = false;
+        let context_usage_percent = 0;
 
         if (kind === "markdown" || kind === "text" || (kind === "stream" && channel !== "")) {
             text = typeof block["text"] === "string" ? block["text"] : stringify_unknown(block["text"]);
@@ -294,26 +342,77 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
                 text = stringify_unknown(block);
             }
             language = "json";
+        } else if (kind === "context_usage") {
+            const used = block["used"];
+            const limit = block["limit"];
+            const unit = typeof block["unit"] === "string" ? block["unit"] : "tokens";
+            const breakdown = Array.isArray(block["breakdown"]) ? block["breakdown"] : [];
+
+            if (
+                typeof used === "number" &&
+                typeof limit === "number" &&
+                Number.isFinite(used) &&
+                Number.isFinite(limit) &&
+                limit > 0
+            ) {
+                has_context_usage_percent = true;
+                context_usage_percent = Math.max(0, Math.min(100, (used / limit) * 100));
+                text = `${used}/${limit} ${unit}`;
+            } else if (typeof block["text"] === "string") {
+                text = block["text"];
+            } else {
+                text = stringify_unknown(block);
+            }
+
+            list_items = breakdown.map((item) => stringify_unknown(item));
+        } else if (kind === "file_tree") {
+            if (Array.isArray(block["entries"])) {
+                list_items = block["entries"].map((item) => stringify_unknown(item));
+                text = list_items.join("\n");
+            } else if (typeof block["tree"] === "string") {
+                text = block["tree"];
+            } else {
+                text = stringify_unknown(block["entries"] ?? block["tree"] ?? block);
+            }
+        } else if (kind === "memory_blocks") {
+            if (Array.isArray(block["blocks"])) {
+                // Try to render an intentionally compact summary list.
+                list_items = block["blocks"].map((item) => {
+                    if (!item || typeof item !== "object") return stringify_unknown(item);
+                    const rec = item as Record<string, unknown>;
+                    const label = typeof rec["label"] === "string" ? rec["label"] : "(block)";
+                    const chars = typeof rec["chars"] === "number" ? ` (${rec["chars"]} chars)` : "";
+                    return `${label}${chars}`;
+                });
+                text = list_items.join("\n");
+            } else if (typeof block["text"] === "string") {
+                text = block["text"];
+            } else {
+                text = stringify_unknown(block["blocks"] ?? block);
+            }
+        } else if (kind === "subagent_group" || kind === "queue" || kind === "plan" || kind === "todo") {
+            const raw_items = Array.isArray(block["items"]) ? block["items"] : Array.isArray(block["rows"]) ? block["rows"] : undefined;
+            if (raw_items !== undefined) {
+                list_items = raw_items.map((item) => stringify_unknown(item));
+                text = list_items.join("\n");
+            } else if (typeof block["text"] === "string") {
+                text = block["text"];
+            } else {
+                text = stringify_unknown(block);
+            }
         } else {
             text = stringify_unknown(block);
             is_unknown = true;
         }
 
-        blocks.push({
-            index,
-            kind,
-            label: block_label(kind, channel),
-            title,
+        push_generic_block({
             text,
             language,
             channel,
-            columns: [],
-            rows: [],
-            has_columns: false,
-            copy_text: text,
-            is_table: false,
-            is_stream: kind === "stream" && channel !== "",
             is_unknown,
+            list_items,
+            has_context_usage_percent,
+            context_usage_percent,
         });
     }
 
