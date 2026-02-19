@@ -25,13 +25,17 @@
 
 /* Shared card primitives for non-sp_ai widgets (poll/todo/zform), aligned to sp_ai. */
 .sp-widget-card {
+    /* Compact card language shared across poll/todo/zform.
+       Keep click targets reasonable, but tighter than Zulip defaults. */
     --sp-card-bg: var(--color-background-widget-button);
     --sp-card-border: var(--color-border-dropdown-widget-button);
+    --sp-widget-leading-size: 32px;
+    --sp-widget-row-height: 32px;
 
     border: 1px solid var(--sp-card-border);
     background-color: var(--sp-card-bg);
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     max-width: 100%;
 }
 
@@ -40,14 +44,14 @@
     flex-flow: row wrap;
     align-items: baseline;
     justify-content: space-between;
-    gap: 8px;
+    gap: 5px;
 }
 
 .sp-widget-title-wrap {
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex: 1 1 auto;
     min-width: 12ch;
 }
@@ -64,7 +68,7 @@
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 }
 
 .sp-widget-title {
@@ -83,7 +87,7 @@
     flex: 0 0 auto;
     font-size: 0.7857em; /* 11px at 14px/em */
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 999px;
     border: 1px solid var(--color-border-zulip-button);
     background-color: var(--color-background-zulip-button);
@@ -91,8 +95,8 @@
 
 .sp-widget-icon-btn {
     flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -116,11 +120,11 @@
 /* ZForm choices widget (card style). */
 .widget-choices.sp-widget-card {
     & .sp-widget-choice-list {
-        margin: 10px 0 0;
+        margin: 8px 0 0;
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
     }
 
     & .sp-widget-choice {
@@ -129,13 +133,13 @@
         display: flex;
         flex-flow: row wrap;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
     & .sp-widget-choice-btn {
         flex: 0 0 auto;
-        width: 34px;
-        height: 34px;
+        width: var(--sp-widget-leading-size);
+        height: var(--sp-widget-leading-size);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -169,11 +173,11 @@
 /* Poll/Todo widgets: unify list row styling with zform choices. */
 .sp-widget-card.poll-widget ul.poll-widget,
 .sp-widget-card.todo-widget ul.todo-widget {
-    margin: 10px 0 0;
+    margin: 8px 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .sp-widget-card.poll-widget ul.poll-widget > li,
@@ -188,14 +192,14 @@
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 /* Leading control (poll vote count) */
 .sp-widget-card.poll-widget .poll-vote {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
+    width: var(--sp-widget-leading-size);
+    height: var(--sp-widget-leading-size);
+    min-width: var(--sp-widget-leading-size);
     border: 1px solid var(--color-border-dropdown-widget-button);
     border-radius: 8px;
     background-color: var(--color-background-widget-button);
@@ -239,9 +243,9 @@
 }
 
 .sp-widget-card.todo-widget .todo-checkbox {
-    flex: 0 0 34px;
-    width: 34px;
-    height: 34px;
+    flex: 0 0 var(--sp-widget-leading-size);
+    width: var(--sp-widget-leading-size);
+    height: var(--sp-widget-leading-size);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -421,7 +425,7 @@
 
     .sp-ai-btn {
         flex: 0 0 auto;
-        height: 34px;
+        height: var(--sp-widget-row-height);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1141,7 +1145,7 @@
 /* Poll/Todo widgets restyled as cards (when sp-widget-card is present). */
 .sp-widget-card.poll-widget,
 .sp-widget-card.todo-widget {
-    padding: 10px 12px;
+    padding: 8px 10px;
 }
 
 .sp-widget-card.poll-widget .poll-question-header,
@@ -1153,7 +1157,7 @@
 .sp-widget-card.todo-widget input[type="text"] {
     flex: 1 1 auto;
     min-width: 14ch;
-    height: 34px;
+    height: var(--sp-widget-row-height);
     box-sizing: border-box;
     border: 1px solid var(--color-border-dropdown-widget-button);
     box-shadow: none;
@@ -1188,16 +1192,16 @@
 
 .sp-widget-card.poll-widget .poll-option-bar,
 .sp-widget-card.todo-widget .add-task-bar {
-    margin-top: 10px;
+    margin-top: 8px;
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .sp-widget-card.poll-widget button.poll-option,
 .sp-widget-card.todo-widget button.add-task {
-    height: 34px;
+    height: var(--sp-widget-row-height);
     display: inline-flex;
     align-items: center;
     justify-content: center;
