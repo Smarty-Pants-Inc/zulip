@@ -46,6 +46,12 @@ const widget_state_schema = z.object({
             is_table: z.boolean(),
             is_stream: z.boolean(),
             is_unknown: z.boolean(),
+            is_context_usage: z.boolean(),
+            has_context_usage_percent: z.boolean(),
+            context_usage_percent: z.number(),
+            has_list_items: z.boolean(),
+            list_items: z.array(z.string()),
+            is_file_tree: z.boolean(),
         }),
     ),
     parallel: z.optional(
@@ -191,6 +197,13 @@ function block_label(kind: string, channel: "stdout" | "stderr" | ""): string {
     if (kind === "diff") return "Diff";
     if (kind === "json") return "JSON";
     if (kind === "table") return "Table";
+    if (kind === "context_usage") return "Context usage";
+    if (kind === "file_tree") return "File tree";
+    if (kind === "memory_blocks") return "Memory blocks";
+    if (kind === "subagent_group") return "Subagent group";
+    if (kind === "queue") return "Queue";
+    if (kind === "plan") return "Plan";
+    if (kind === "todo") return "Todo";
     if (kind === "stream" && channel === "stderr") return "Stderr";
     if (kind === "stream") return "Stdout";
     return "Block";
