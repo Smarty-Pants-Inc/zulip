@@ -23,7 +23,7 @@ import type {AnyWidgetData} from "./widget_schema.ts";
 const widget_state_schema = z.object({
     version: z.int().check(z.nonnegative()),
     display: z.enum(["card_only", "card_with_caption"]),
-    kind: z.enum(["thinking", "tool", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
+    kind: z.enum(["thinking", "tool", "subagent_group", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
     title: z.string(),
     caption: z.string(),
     status: z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"]),
@@ -181,6 +181,7 @@ async function apply_sp_ai_highlighting(root: HTMLElement): Promise<void> {
 function kind_label(kind: WidgetState["kind"]): string {
     if (kind === "thinking") return "Thinking";
     if (kind === "tool") return "Tool";
+    if (kind === "subagent_group") return "Subagent group";
     if (kind === "final") return "Final";
     if (kind === "error") return "Error";
     if (kind === "plan") return "Plan";
@@ -391,7 +392,11 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
                 text = stringify_unknown(block["blocks"] ?? block);
             }
         } else if (kind === "subagent_group" || kind === "queue" || kind === "plan" || kind === "todo") {
-            const raw_items = Array.isArray(block["items"]) ? block["items"] : Array.isArray(block["rows"]) ? block["rows"] : undefined;
+            const raw_items =
+                Array.isArray(block["items"]) ? block["items"] :
+                kind === "subagent_group" && Array.isArray(block["agents"]) ? block["agents"] :
+                Array.isArray(block["rows"]) ? block["rows"] :
+                undefined;
             if (raw_items !== undefined) {
                 list_items = raw_items.map((item) => stringify_unknown(item));
                 text = list_items.join("\n");
@@ -435,6 +440,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         kind:
             kind === "thinking" ||
             kind === "tool" ||
+            kind === "subagent_group" ||
             kind === "final" ||
             kind === "error" ||
             kind === "plan" ||

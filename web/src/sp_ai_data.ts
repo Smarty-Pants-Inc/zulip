@@ -109,7 +109,7 @@ const sp_ai_turn_block_schema = z.union([sp_ai_known_turn_block_schema, sp_ai_un
 
 const sp_ai_turn_schema = z.catchall(
     z.object({
-        kind: z.enum(["thinking", "tool", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
+        kind: z.enum(["thinking", "tool", "subagent_group", "final", "error", "plan", "decision", "ask", "budget", "policy"]),
         status: z.enum(["pending", "running", "ok", "error", "aborted", "denied", "approval_requested", "approval_responded"]),
         title: z.string(),
         subtitle: z.optional(z.string()),
