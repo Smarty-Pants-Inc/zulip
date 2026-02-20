@@ -15,6 +15,7 @@ import {update_elements as update_rendered_markdown_elements} from "./rendered_m
 import {
     sp_ai_widget_inbound_event_schema,
     sp_ai_subagent_group_block_schema,
+    sp_ai_background_tasks_block_schema,
     type SpAiWidgetExtraData,
     type SpAiWidgetInboundEvent,
 } from "./sp_ai_data.ts";
@@ -97,12 +98,35 @@ type SubagentGroupTemplate = {
     fallback_text: string;
 };
 
+type BackgroundTaskStatusClass = "pending" | "running" | "ok" | "error" | "aborted" | "unknown";
+
+type BackgroundTaskTemplate = {
+    task_index: number;
+    description: string;
+    command: string;
+    status: BackgroundTaskStatusClass;
+    status_label: string;
+    meta_line: string;
+    has_output_preview: boolean;
+    output_preview: string;
+    error: string;
+};
+
+type BackgroundTasksGroupTemplate = {
+    group_index: number;
+    title: string;
+    tasks: BackgroundTaskTemplate[];
+};
+
 type WidgetState = WidgetBaseState & {
     turn_kind: string;
     turn_kind_label: string;
     has_subagent_groups: boolean;
     subagent_section_title: string;
     subagent_groups: SubagentGroupTemplate[];
+    has_background_tasks: boolean;
+    background_tasks_section_title: string;
+    background_task_groups: BackgroundTasksGroupTemplate[];
 };
 
 function format_duration_ms(duration_ms: number): string {
@@ -121,6 +145,20 @@ function format_duration_ms(duration_ms: number): string {
 
     const minutes = Math.floor(seconds / 60);
     const rem_seconds = Math.round(seconds % 60);
+    return `${minutes}m ${rem_seconds}s`;
+}
+
+function format_runtime_sec(runtime_sec: number): string {
+    if (!Number.isFinite(runtime_sec) || runtime_sec < 0) {
+        return "";
+    }
+
+    if (runtime_sec < 60) {
+        return `${runtime_sec.toFixed(runtime_sec < 10 ? 1 : 0)}s`;
+    }
+
+    const minutes = Math.floor(runtime_sec / 60);
+    const rem_seconds = Math.round(runtime_sec % 60);
     return `${minutes}m ${rem_seconds}s`;
 }
 
@@ -155,6 +193,29 @@ function normalize_subagent_status(raw_status: string): {status: SubagentStatusC
     return {status: "unknown", label: raw === "" ? "Unknown" : raw};
 }
 
+function normalize_background_task_status(raw_status: string): {status: BackgroundTaskStatusClass; label: string} {
+    const raw = raw_status.trim();
+    const s = raw.toLowerCase();
+
+    if (["ok", "success", "completed", "complete"].includes(s)) {
+        return {status: "ok", label: "OK"};
+    }
+    if (["error", "failed", "failure"].includes(s)) {
+        return {status: "error", label: "Error"};
+    }
+    if (["running", "in_progress", "in-progress", "started"].includes(s)) {
+        return {status: "running", label: "Running"};
+    }
+    if (["pending", "queued", "queue"].includes(s)) {
+        return {status: "pending", label: "Pending"};
+    }
+    if (["aborted", "canceled", "cancelled"].includes(s)) {
+        return {status: "aborted", label: "Aborted"};
+    }
+
+    return {status: "unknown", label: raw === "" ? "Unknown" : raw};
+}
+
 function default_title_for_turn_kind(kind: string): string {
     if (kind === "subagent_group") {
         return "Subagents";
@@ -173,13 +234,15 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
     turn_kind_label: string;
     subagent_section_title: string;
     subagent_groups: SubagentGroupTemplate[];
+    skip_block_indexes: Set<number>;
 } {
     const turn_kind = extra_data.turn?.kind ?? "";
     const turn_kind_label = turn_kind === "" ? "" : default_title_for_turn_kind(turn_kind);
-    const blocks = extra_data.turn?.blocks ?? [];
+    const blocks = Array.isArray(extra_data.turn?.blocks) ? extra_data.turn?.blocks : [];
 
+    const skip_block_indexes = new Set<number>();
     const subagent_groups: SubagentGroupTemplate[] = [];
-    for (const block of blocks) {
+    for (const [index, block] of blocks.entries()) {
         const parsed = sp_ai_subagent_group_block_schema.safeParse(block);
         if (!parsed.success) {
             continue;
@@ -235,6 +298,7 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
             agents: normalized_agents,
             fallback_text,
         });
+        skip_block_indexes.add(index);
     }
 
     const subagent_section_title =
@@ -247,6 +311,92 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
         turn_kind_label,
         subagent_section_title,
         subagent_groups,
+        skip_block_indexes,
+    };
+}
+
+function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
+    background_tasks_section_title: string;
+    background_task_groups: BackgroundTasksGroupTemplate[];
+    skip_block_indexes: Set<number>;
+} {
+    const blocks = Array.isArray(extra_data.turn?.blocks) ? extra_data.turn?.blocks : [];
+
+    const skip_block_indexes = new Set<number>();
+    const background_task_groups: BackgroundTasksGroupTemplate[] = [];
+
+    let group_index = 0;
+    for (const [index, block] of blocks.entries()) {
+        const parsed = sp_ai_background_tasks_block_schema.safeParse(block);
+        if (!parsed.success) {
+            continue;
+        }
+
+        const raw_tasks = parsed.data.tasks ?? [];
+        if (!Array.isArray(raw_tasks) || raw_tasks.length === 0) {
+            // Back-compat: no structured tasks yet; let generic block rendering handle it.
+            continue;
+        }
+
+        const tasks: BackgroundTaskTemplate[] = raw_tasks
+            .map((task, task_index) => {
+                const rec: any = task && typeof task === "object" ? task : {};
+
+                const command = typeof rec.command === "string" ? rec.command : "";
+                const description = typeof rec.description === "string" ? rec.description : "";
+                const error = typeof rec.error === "string" ? rec.error : "";
+                const output_preview = typeof rec.outputPreview === "string" ? rec.outputPreview : "";
+                const has_output_preview = output_preview !== "";
+
+                const {status, label} = normalize_background_task_status(typeof rec.status === "string" ? rec.status : "");
+
+                const meta_parts: string[] = [];
+                if (typeof rec.runtimeSec === "number") {
+                    const rt = format_runtime_sec(rec.runtimeSec);
+                    if (rt !== "") {
+                        meta_parts.push(rt);
+                    }
+                }
+                if (typeof rec.exitCode === "number" && Number.isFinite(rec.exitCode)) {
+                    meta_parts.push(`exit ${rec.exitCode}`);
+                }
+
+                return {
+                    task_index,
+                    description,
+                    command,
+                    status,
+                    status_label: label,
+                    meta_line: meta_parts.join(" · "),
+                    has_output_preview,
+                    output_preview,
+                    error,
+                };
+            })
+            .filter((task) => task.command !== "" || task.description !== "" || task.has_output_preview || task.error !== "");
+
+        if (tasks.length === 0) {
+            continue;
+        }
+
+        background_task_groups.push({
+            group_index,
+            title: parsed.data.title ?? "",
+            tasks,
+        });
+        skip_block_indexes.add(index);
+        group_index += 1;
+    }
+
+    const background_tasks_section_title =
+        background_task_groups.length === 1 && background_task_groups[0]?.title.trim() !== ""
+            ? background_task_groups[0].title
+            : "Background tasks";
+
+    return {
+        background_tasks_section_title,
+        background_task_groups,
+        skip_block_indexes,
     };
 }
 
@@ -385,6 +535,7 @@ function block_label(kind: string, channel: "stdout" | "stderr" | ""): string {
     if (kind === "file_tree") return "File tree";
     if (kind === "memory_blocks") return "Memory blocks";
     if (kind === "subagent_group") return "Subagent group";
+    if (kind === "background_tasks" || kind === "bash_tasks") return "Background tasks";
     if (kind === "queue") return "Queue";
     if (kind === "plan") return "Plan";
     if (kind === "todo") return "Todo";
@@ -393,7 +544,10 @@ function block_label(kind: string, channel: "stdout" | "stderr" | ""): string {
     return "Block";
 }
 
-function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
+function normalize_turn_blocks(
+    raw_blocks: unknown,
+    opts?: {skip_block_indexes?: Set<number>},
+): WidgetState["blocks"] {
     if (!Array.isArray(raw_blocks)) {
         return [];
     }
@@ -401,6 +555,10 @@ function normalize_turn_blocks(raw_blocks: unknown): WidgetState["blocks"] {
     const blocks: WidgetState["blocks"] = [];
 
     for (const [index, raw] of raw_blocks.entries()) {
+        if (opts?.skip_block_indexes?.has(index)) {
+            continue;
+        }
+
         if (!raw || typeof raw !== "object") {
             continue;
         }
@@ -612,6 +770,25 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
     const kindRaw = String(turn?.kind || "") as WidgetState["kind"];
     const statusRaw = String(turn?.status || ed.status || "running");
 
+    const {
+        turn_kind: normalized_turn_kind,
+        turn_kind_label,
+        subagent_section_title,
+        subagent_groups,
+        skip_block_indexes: subagent_skip_block_indexes,
+    } = normalize_subagent_groups(extra_data);
+
+    const {
+        background_tasks_section_title,
+        background_task_groups,
+        skip_block_indexes: background_skip_block_indexes,
+    } = normalize_background_tasks(extra_data);
+
+    const skip_block_indexes = new Set<number>([
+        ...subagent_skip_block_indexes,
+        ...background_skip_block_indexes,
+    ]);
+
     const parsed = widget_state_schema.safeParse({
         version: ed.version ?? 2,
         display: ed.display ?? "card_only",
@@ -648,7 +825,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         tool: turn?.tool?.name ?? ed.tool ?? "",
         input: turn?.tool?.argsText ?? ed.input ?? "",
         output: turn?.output ?? ed.output ?? "",
-        blocks: normalize_turn_blocks(turn?.blocks),
+        blocks: normalize_turn_blocks(turn?.blocks, {skip_block_indexes}),
 
         parallel: (() => {
             const p: any = turn?.parallel;
@@ -665,8 +842,6 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         })(),
     });
 
-    const {turn_kind: normalized_turn_kind, turn_kind_label, subagent_section_title, subagent_groups} =
-        normalize_subagent_groups(extra_data);
 
     if (parsed.success) {
         return {
@@ -676,6 +851,9 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
             has_subagent_groups: subagent_groups.length > 0,
             subagent_section_title,
             subagent_groups,
+            has_background_tasks: background_task_groups.length > 0,
+            background_tasks_section_title,
+            background_task_groups,
         };
     }
 
@@ -698,6 +876,9 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         has_subagent_groups: subagent_groups.length > 0,
         subagent_section_title,
         subagent_groups,
+        has_background_tasks: background_task_groups.length > 0,
+        background_tasks_section_title,
+        background_task_groups,
     };
 }
 
@@ -802,8 +983,16 @@ export function activate(opts: {
             show_tool_approval_actions: state.kind === "tool" && state.status === "approval_requested",
             show_caption: state.display === "card_with_caption" && state.caption !== "",
             show_tool: state.tool !== "",
-            has_input: state.blocks.length === 0 && state.input !== "",
-            has_output: state.blocks.length === 0 && state.output !== "",
+            has_input:
+                state.blocks.length === 0 &&
+                !state.has_subagent_groups &&
+                !state.has_background_tasks &&
+                state.input !== "",
+            has_output:
+                state.blocks.length === 0 &&
+                !state.has_subagent_groups &&
+                !state.has_background_tasks &&
+                state.output !== "",
             has_blocks: state.blocks.length > 0,
             blocks: blocks_for_template,
             show_abort: state.status === "running",
@@ -862,6 +1051,27 @@ export function activate(opts: {
             }
 
             void copy_text(block.copy_text);
+        });
+
+        opts.$elem.find("button[data-copy-bg-task-command]").on("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const raw = $(e.currentTarget).attr("data-copy-bg-task-command") ?? "";
+            const [raw_group, raw_task] = raw.split(":", 2);
+            const group_index = Number.parseInt(raw_group ?? "", 10);
+            const task_index = Number.parseInt(raw_task ?? "", 10);
+            if (!Number.isInteger(group_index) || !Number.isInteger(task_index)) {
+                return;
+            }
+
+            const group = state.background_task_groups.find((g) => g.group_index === group_index);
+            const task = group?.tasks.find((t) => t.task_index === task_index);
+            if (!task) {
+                return;
+            }
+
+            void copy_text(task.command);
         });
 
         opts.$elem.find("button[data-action]").on("click", (e) => {

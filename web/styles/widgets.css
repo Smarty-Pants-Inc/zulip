@@ -679,6 +679,120 @@
         }
     }
 
+    .sp-ai-background-task-groups {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sp-ai-background-task-group-title {
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    .sp-ai-background-task-list {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sp-ai-background-task {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: start;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: var(--color-background-widget-input);
+    }
+
+    .sp-ai-background-task-status {
+        flex: 0 0 auto;
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        padding: 2px 8px 2px 18px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: var(--color-background-widget-button);
+        white-space: nowrap;
+        position: relative;
+        line-height: 1.4;
+
+        &::before {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background-color: currentcolor;
+            opacity: 0.7;
+        }
+    }
+
+    .sp-ai-background-task-status-pending {
+        color: hsl(220deg 14% 40%);
+    }
+
+    .sp-ai-background-task-status-running {
+        color: hsl(200deg 79% 30%);
+    }
+
+    .sp-ai-background-task-status-ok {
+        color: hsl(156deg 41% 35%);
+    }
+
+    .sp-ai-background-task-status-error {
+        color: hsl(1deg 45% 45%);
+    }
+
+    .sp-ai-background-task-status-aborted {
+        color: hsl(30deg 32% 40%);
+    }
+
+    .sp-ai-background-task-status-unknown {
+        color: hsl(0deg 0% 40%);
+    }
+
+    .sp-ai-background-task-command {
+        font-family: var(--monospace-font);
+        font-size: 0.9em;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-background-task-desc {
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+        opacity: 0.9;
+    }
+
+    .sp-ai-background-task-meta {
+        margin-top: 2px;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        opacity: 0.85;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-background-task-error {
+        margin-top: 4px;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        color: hsl(1deg 45% 45%);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-background-task-output {
+        max-height: 180px;
+    }
+
     .sp-ai-section {
         margin-top: 8px;
 

@@ -37,6 +37,32 @@ export const sp_ai_subagent_group_block_schema = z.catchall(
     z.unknown(),
 );
 
+export const sp_ai_background_task_schema = z.catchall(
+    z.object({
+        // Keep this permissive; ids may be missing or numeric in early payloads.
+        id: z.optional(z.string()),
+        description: z.optional(z.string()),
+        command: z.optional(z.string()),
+        status: z.optional(z.string()),
+        runtimeSec: z.optional(z.number()),
+        outputPreview: z.optional(z.string()),
+        exitCode: z.optional(z.number()),
+        error: z.optional(z.string()),
+    }),
+    z.unknown(),
+);
+
+export const sp_ai_background_tasks_block_schema = z.catchall(
+    z.object({
+        // Support both names while we iterate on the upstream payload.
+        kind: z.union([z.literal("background_tasks"), z.literal("bash_tasks")]),
+        title: z.optional(z.string()),
+        // Optional so the widget can safely fall back to generic rendering.
+        tasks: z.optional(z.array(sp_ai_background_task_schema)),
+    }),
+    z.unknown(),
+);
+
 const sp_ai_turn_tool_schema = z.catchall(
     z.object({
         name: z.string(),
@@ -122,6 +148,7 @@ const sp_ai_known_turn_block_schema = z.union([
         z.unknown(),
     ),
     sp_ai_subagent_group_block_schema,
+    sp_ai_background_tasks_block_schema,
 ]);
 
 const sp_ai_unknown_turn_block_schema = z.catchall(
