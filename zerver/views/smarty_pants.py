@@ -95,11 +95,15 @@ SMARTY_PANTS_CONTROL_PLANE_BASE_URL_ENV_VAR = "SMARTY_PANTS_CONTROL_PLANE_BASE_U
 # Shared secret validated by Convex `checkZulipFacadeAuth`.
 SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR = "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET"
 
-# Authentication mode for S2S /api/s2s/smarty_pants/* endpoints.
-# - legacy: shared secret is passed in a header and (optionally) request payload.
-# - signed: nonce+timestamp+signature headers are required.
-# - both: accept either scheme (default).
-SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR = "SMARTY_PANTS_S2S_AUTH_MODE"
+# Authentication for S2S /api/s2s/smarty_pants/* endpoints.
+#
+# Requests must include these headers:
+# - X-SP-S2S-Timestamp (ms since epoch)
+# - X-SP-S2S-Nonce
+# - X-SP-S2S-Signature
+#
+# Signature = HMAC-SHA256(secret, `${method}\n${path}\n${timestamp}\n${nonce}`)
+# where `secret` is SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
 
 SMARTY_PANTS_S2S_SIGNED_AUTH_WINDOW_MS = 5 * 60 * 1000
 SMARTY_PANTS_S2S_SIGNED_NONCE_TTL_SECONDS = 10 * 60
@@ -172,74 +176,11 @@ def _parse_request_payload(request: HttpRequest) -> dict[str, Any]:
     return data
 
 
-def _get_smarty_pants_shared_secret() -> str:
-    secret = os.environ.get(SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR)
-    if not secret:
-        raise JsonableError(
-            _(
-                "Smarty Pants facade shared secret is not configured on this Zulip server. Missing {secret_var}."
-            ).format(secret_var=SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR)
-        )
-    return secret
-
-
-def _extract_smarty_pants_secret_from_request(request: HttpRequest) -> str | None:
-    header = request.headers.get("x-smarty-pants-secret")
-    if header is not None:
-        token = header.strip()
-        if token:
-            return token
-
-    auth = request.headers.get("Authorization")
-    if auth is not None:
-        auth = auth.strip()
-        if auth.lower().startswith("bearer "):
-            token = auth.split(" ", 1)[1].strip()
-            if token:
-                return token
-
-    return None
-
-
-def _require_smarty_pants_shared_secret(request: HttpRequest, *, payload: dict[str, Any] | None = None) -> None:
-    expected = _get_smarty_pants_shared_secret()
-    provided = _extract_smarty_pants_secret_from_request(request)
-
-    # Nginx/uwsgi configs in Zulip prod can drop arbitrary HTTP headers.
-    # Support passing the secret in the request payload as a fallback.
-    if provided is None and payload is not None:
-        raw = payload.get("secret")
-        if isinstance(raw, str) and raw.strip():
-            provided = raw.strip()
-
-    if provided is None or not constant_time_compare(provided, expected):
-        raise AccessDeniedError()
-
-
-def _get_smarty_pants_s2s_auth_mode() -> str:
-    raw = os.environ.get(SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR, "both")
-    mode = raw.strip().lower()
-    if not mode:
-        mode = "both"
-    if mode not in {"legacy", "signed", "both"}:
-        # Fail closed if misconfigured.
-        raise JsonableError(
-            _("Invalid {var} value; must be 'legacy', 'signed', or 'both'.").format(
-                var=SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR
-            )
-        )
-    return mode
-
-
-def _has_smarty_pants_signed_auth_headers(request: HttpRequest) -> bool:
-    return any(
-        request.headers.get(name) is not None
-        for name in ("X-SP-S2S-Timestamp", "X-SP-S2S-Nonce", "X-SP-S2S-Signature")
-    )
-
-
 def _require_smarty_pants_signed_auth(request: HttpRequest) -> None:
-    expected_secret = _get_smarty_pants_shared_secret()
+    # Fail closed and avoid leaking configuration details.
+    expected_secret = os.environ.get(SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR)
+    if not expected_secret:
+        raise AccessDeniedError()
 
     timestamp_raw = request.headers.get("X-SP-S2S-Timestamp")
     nonce_raw = request.headers.get("X-SP-S2S-Nonce")
@@ -286,28 +227,8 @@ def _require_smarty_pants_signed_auth(request: HttpRequest) -> None:
         raise AccessDeniedError()
 
 
-def _require_smarty_pants_s2s_auth(
-    request: HttpRequest,
-    *,
-    payload: dict[str, Any] | None = None,
-) -> None:
-    mode = _get_smarty_pants_s2s_auth_mode()
-
-    if mode == "legacy":
-        _require_smarty_pants_shared_secret(request, payload=payload)
-        return
-
-    if mode == "signed":
-        _require_smarty_pants_signed_auth(request)
-        return
-
-    # mode == "both":
-    # If any signed auth headers are present, treat this as a signed request and
-    # do not fall back to legacy.
-    if _has_smarty_pants_signed_auth_headers(request):
-        _require_smarty_pants_signed_auth(request)
-    else:
-        _require_smarty_pants_shared_secret(request, payload=payload)
+def _require_smarty_pants_s2s_auth(request: HttpRequest) -> None:
+    _require_smarty_pants_signed_auth(request)
 
 
 def _coerce_optional_trimmed_string(value: object, *, field_name: str) -> str | None:
@@ -370,8 +291,7 @@ def _get_realm_for_s2s_request(realm_id_raw: object) -> Realm:
 def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
     """Get or set per-realm branding overrides.
 
-    Authentication: requires the shared secret configured in
-    SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     Supported override keys:
       - name
@@ -399,8 +319,8 @@ def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
 
     branding_payload: dict[str, Any] | None = None
@@ -542,7 +462,7 @@ def _s2s_tools_execute_cache_key(
 def s2s_smarty_pants_authz_check(request: HttpRequest) -> HttpResponse:
     """S2S authorization introspection for Smarty Pants.
 
-    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     POST body (form or JSON):
       - realm_id
@@ -557,8 +477,8 @@ def s2s_smarty_pants_authz_check(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     user_id = _coerce_int_param(payload.get("user_id") or payload.get("userId"), field_name="user_id")
 
@@ -2080,7 +2000,7 @@ def _tool_zulip_realm_default_stream_group_streams_remove(*, realm: Realm, args:
 def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     """Execute allowlisted Zulip admin/project tools with anti-spoof checks.
 
-    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     POST body (form or JSON):
       - realm_id
@@ -2097,8 +2017,8 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2371,7 +2291,7 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
 def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpResponse:
     """Send a stream message as a specified Zulip user.
 
-    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     POST body (form or JSON):
       - realm_id
@@ -2395,8 +2315,8 @@ def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpR
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2532,7 +2452,7 @@ def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> H
 
     This avoids API rate limits by performing the work server-side.
 
-    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     POST body (form or JSON):
       - realm_id
@@ -2560,8 +2480,8 @@ def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> H
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2739,7 +2659,7 @@ def s2s_smarty_pants_messages_purge_topic(request: HttpRequest) -> HttpResponse:
 
     This is intended for operational cleanup/resync flows.
 
-    Authentication: shared secret in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    Authentication: requires signed S2S headers.
 
     POST body (form or JSON):
       - realm_id
@@ -2763,8 +2683,8 @@ def s2s_smarty_pants_messages_purge_topic(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return HttpResponse(status=405)
 
+    _require_smarty_pants_s2s_auth(request)
     payload = _parse_request_payload(request)
-    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
