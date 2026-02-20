@@ -111,6 +111,63 @@
             <div class="sp-ai-caption">{{caption}}</div>
         {{/if}}
 
+        {{#if has_background_tasks}}
+            <details class="sp-ai-section sp-ai-background-tasks-section" open>
+                <summary>
+                    <span>{{background_tasks_section_title}}</span>
+                </summary>
+
+                <div class="sp-ai-background-task-groups">
+                    {{#each background_task_groups}}
+                        {{#if title}}
+                            <div class="sp-ai-background-task-group-title">{{title}}</div>
+                        {{/if}}
+
+                        <ul class="sp-ai-background-task-list">
+                            {{#each tasks}}
+                                <li class="sp-ai-background-task">
+                                    <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
+
+                                    <div class="sp-ai-background-task-main">
+                                        {{#if command}}
+                                            <div class="sp-ai-background-task-command">{{command}}</div>
+                                        {{/if}}
+
+                                        {{#if description}}
+                                            <div class="sp-ai-background-task-desc">{{description}}</div>
+                                        {{/if}}
+
+                                        {{#if meta_line}}
+                                            <div class="sp-ai-background-task-meta">{{meta_line}}</div>
+                                        {{/if}}
+
+                                        {{#if error}}
+                                            <div class="sp-ai-background-task-error">{{error}}</div>
+                                        {{/if}}
+
+                                        {{#if has_output_preview}}
+                                            <pre class="sp-ai-pre sp-ai-background-task-output">{{output_preview}}</pre>
+                                        {{/if}}
+                                    </div>
+
+                                    <button
+                                        class="sp-ai-icon-btn sp-ai-icon-btn-copy"
+                                        type="button"
+                                        data-copy-bg-task-command="{{../group_index}}:{{task_index}}"
+                                        aria-label="Copy command"
+                                    >
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                    </button>
+                                </li>
+                            {{/each}}
+                        </ul>
+                    {{/each}}
+                </div>
+            </details>
+        {{/if}}
 
         {{#if has_blocks}}
             <div class="sp-ai-tool-sections">
@@ -318,6 +375,64 @@
                             <pre class="sp-ai-pre">{{fallback_text}}</pre>
                         {{/if}}
                     {{/if}}
+                {{/each}}
+            </div>
+        </details>
+    {{/if}}
+
+    {{#if has_background_tasks}}
+        <details class="sp-ai-section sp-ai-background-tasks-section" open>
+            <summary>
+                <span>{{background_tasks_section_title}}</span>
+            </summary>
+
+            <div class="sp-ai-background-task-groups">
+                {{#each background_task_groups}}
+                    {{#if title}}
+                        <div class="sp-ai-background-task-group-title">{{title}}</div>
+                    {{/if}}
+
+                    <ul class="sp-ai-background-task-list">
+                        {{#each tasks}}
+                            <li class="sp-ai-background-task">
+                                <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
+
+                                <div class="sp-ai-background-task-main">
+                                    {{#if command}}
+                                        <div class="sp-ai-background-task-command">{{command}}</div>
+                                    {{/if}}
+
+                                    {{#if description}}
+                                        <div class="sp-ai-background-task-desc">{{description}}</div>
+                                    {{/if}}
+
+                                    {{#if meta_line}}
+                                        <div class="sp-ai-background-task-meta">{{meta_line}}</div>
+                                    {{/if}}
+
+                                    {{#if error}}
+                                        <div class="sp-ai-background-task-error">{{error}}</div>
+                                    {{/if}}
+
+                                    {{#if has_output_preview}}
+                                        <pre class="sp-ai-pre sp-ai-background-task-output">{{output_preview}}</pre>
+                                    {{/if}}
+                                </div>
+
+                                <button
+                                    class="sp-ai-icon-btn sp-ai-icon-btn-copy"
+                                    type="button"
+                                    data-copy-bg-task-command="{{../group_index}}:{{task_index}}"
+                                    aria-label="Copy command"
+                                >
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </li>
+                        {{/each}}
+                    </ul>
                 {{/each}}
             </div>
         </details>
