@@ -169,6 +169,66 @@
             </details>
         {{/if}}
 
+        {{#if has_plan_blocks}}
+            <details class="sp-ai-section sp-ai-plan-section" open>
+                <summary>
+                    <span>{{plan_section_title}}</span>
+                </summary>
+
+                <div class="sp-ai-plan-groups">
+                    {{#each plan_groups}}
+                        {{#if title}}
+                            <div class="sp-ai-plan-group-title">{{title}}</div>
+                        {{/if}}
+
+                        <ol class="sp-ai-plan-list">
+                            {{#each steps}}
+                                <li class="sp-ai-plan-step">
+                                    <span class="sp-ai-plan-step-status sp-ai-plan-step-status-{{status}}">{{status_label}}</span>
+                                    <div class="sp-ai-plan-step-text">{{step}}</div>
+                                </li>
+                            {{/each}}
+                        </ol>
+                    {{/each}}
+                </div>
+            </details>
+        {{/if}}
+
+        {{#if has_todo_blocks}}
+            <details class="sp-ai-section sp-ai-todo-section" open>
+                <summary>
+                    <span>{{todo_section_title}}</span>
+                </summary>
+
+                <div class="sp-ai-todo-groups">
+                    {{#each todo_groups}}
+                        {{#if title}}
+                            <div class="sp-ai-todo-group-title">{{title}}</div>
+                        {{/if}}
+
+                        <ul class="sp-ai-todo-list">
+                            {{#each items}}
+                                <li class="sp-ai-todo-item {{#if checked}}sp-ai-todo-item-checked{{/if}}">
+                                    <span class="sp-ai-todo-checkbox" aria-hidden="true">
+                                        {{#if checked}}
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 6 9 17l-5-5"></path>
+                                            </svg>
+                                        {{else}}
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                                            </svg>
+                                        {{/if}}
+                                    </span>
+                                    <span class="sp-ai-todo-text">{{text}}</span>
+                                </li>
+                            {{/each}}
+                        </ul>
+                    {{/each}}
+                </div>
+            </details>
+        {{/if}}
+
         {{#if has_blocks}}
             <div class="sp-ai-tool-sections">
                 {{#each blocks}}
@@ -430,6 +490,66 @@
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                     </svg>
                                 </button>
+                            </li>
+                        {{/each}}
+                    </ul>
+                {{/each}}
+            </div>
+        </details>
+    {{/if}}
+
+    {{#if has_plan_blocks}}
+        <details class="sp-ai-section sp-ai-plan-section" open>
+            <summary>
+                <span>{{plan_section_title}}</span>
+            </summary>
+
+            <div class="sp-ai-plan-groups">
+                {{#each plan_groups}}
+                    {{#if title}}
+                        <div class="sp-ai-plan-group-title">{{title}}</div>
+                    {{/if}}
+
+                    <ol class="sp-ai-plan-list">
+                        {{#each steps}}
+                            <li class="sp-ai-plan-step">
+                                <span class="sp-ai-plan-step-status sp-ai-plan-step-status-{{status}}">{{status_label}}</span>
+                                <div class="sp-ai-plan-step-text">{{step}}</div>
+                            </li>
+                        {{/each}}
+                    </ol>
+                {{/each}}
+            </div>
+        </details>
+    {{/if}}
+
+    {{#if has_todo_blocks}}
+        <details class="sp-ai-section sp-ai-todo-section" open>
+            <summary>
+                <span>{{todo_section_title}}</span>
+            </summary>
+
+            <div class="sp-ai-todo-groups">
+                {{#each todo_groups}}
+                    {{#if title}}
+                        <div class="sp-ai-todo-group-title">{{title}}</div>
+                    {{/if}}
+
+                    <ul class="sp-ai-todo-list">
+                        {{#each items}}
+                            <li class="sp-ai-todo-item {{#if checked}}sp-ai-todo-item-checked{{/if}}">
+                                <span class="sp-ai-todo-checkbox" aria-hidden="true">
+                                    {{#if checked}}
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 6 9 17l-5-5"></path>
+                                        </svg>
+                                    {{else}}
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                                        </svg>
+                                    {{/if}}
+                                </span>
+                                <span class="sp-ai-todo-text">{{text}}</span>
                             </li>
                         {{/each}}
                     </ul>

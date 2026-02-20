@@ -16,6 +16,8 @@ import {
     sp_ai_widget_inbound_event_schema,
     sp_ai_subagent_group_block_schema,
     sp_ai_background_tasks_block_schema,
+    sp_ai_plan_v2_block_schema,
+    sp_ai_todo_v2_block_schema,
     type SpAiWidgetExtraData,
     type SpAiWidgetInboundEvent,
 } from "./sp_ai_data.ts";
@@ -118,6 +120,33 @@ type BackgroundTasksGroupTemplate = {
     tasks: BackgroundTaskTemplate[];
 };
 
+type PlanStepStatusClass = "pending" | "running" | "ok" | "error" | "unknown";
+
+type PlanStepTemplate = {
+    step_index: number;
+    step: string;
+    status: PlanStepStatusClass;
+    status_label: string;
+};
+
+type PlanGroupTemplate = {
+    group_index: number;
+    title: string;
+    steps: PlanStepTemplate[];
+};
+
+type TodoItemTemplate = {
+    item_index: number;
+    text: string;
+    checked: boolean;
+};
+
+type TodoGroupTemplate = {
+    group_index: number;
+    title: string;
+    items: TodoItemTemplate[];
+};
+
 type WidgetState = WidgetBaseState & {
     turn_kind: string;
     turn_kind_label: string;
@@ -127,12 +156,198 @@ type WidgetState = WidgetBaseState & {
     has_background_tasks: boolean;
     background_tasks_section_title: string;
     background_task_groups: BackgroundTasksGroupTemplate[];
+    has_plan_blocks: boolean;
+    plan_section_title: string;
+    plan_groups: PlanGroupTemplate[];
+    has_todo_blocks: boolean;
+    todo_section_title: string;
+    todo_groups: TodoGroupTemplate[];
 };
 
 function format_duration_ms(duration_ms: number): string {
     if (!Number.isFinite(duration_ms) || duration_ms < 0) {
         return "";
     }
+
+function normalize_plan_step_status(raw_status: string): {status: PlanStepStatusClass; label: string} {
+    const raw = raw_status.trim();
+    const s = raw.toLowerCase();
+
+    if (["ok", "success", "completed", "complete", "done"].includes(s)) {
+        return {status: "ok", label: "Done"};
+    }
+    if (["error", "failed", "failure"].includes(s)) {
+        return {status: "error", label: "Error"};
+    }
+    if (["running", "in_progress", "in-progress", "started"].includes(s)) {
+        return {status: "running", label: "In progress"};
+    }
+    if (["pending", "queued", "queue", "todo"].includes(s)) {
+        return {status: "pending", label: "Todo"};
+    }
+
+    return {status: "unknown", label: raw === "" ? "" : raw};
+}
+
+function normalize_plan_blocks(extra_data: SpAiWidgetExtraData): {
+    plan_section_title: string;
+    plan_groups: PlanGroupTemplate[];
+    skip_block_indexes: Set<number>;
+} {
+    const blocks = Array.isArray(extra_data.turn?.blocks) ? extra_data.turn?.blocks : [];
+    const skip_block_indexes = new Set<number>();
+    const plan_groups: PlanGroupTemplate[] = [];
+
+    let group_index = 0;
+    for (const [index, block] of blocks.entries()) {
+        // v2 structured block
+        const parsed = sp_ai_plan_v2_block_schema.safeParse(block);
+        if (parsed.success) {
+            const raw_steps = parsed.data.steps ?? [];
+            if (!Array.isArray(raw_steps) || raw_steps.length === 0) {
+                continue;
+            }
+
+            const steps: PlanStepTemplate[] = raw_steps
+                .map((row, step_index) => {
+                    const step = String(row.step ?? "").trim();
+                    const {status, label} = normalize_plan_step_status(String(row.status ?? ""));
+                    if (step === "") {
+                        return null;
+                    }
+                    return {
+                        step_index,
+                        step,
+                        status,
+                        status_label: label,
+                    };
+                })
+                .filter(Boolean) as PlanStepTemplate[];
+
+            if (steps.length === 0) {
+                continue;
+            }
+
+            plan_groups.push({
+                group_index,
+                title: parsed.data.title ?? "",
+                steps,
+            });
+            skip_block_indexes.add(index);
+            group_index += 1;
+            continue;
+        }
+
+        // Legacy plan list: {kind:"plan", items:["..."]}
+        const rec: any = block && typeof block === "object" ? block : {};
+        if (String(rec.kind || "") !== "plan") {
+            continue;
+        }
+        const raw_items: unknown[] = Array.isArray(rec.items) ? rec.items : [];
+        const items = raw_items.map((x) => (typeof x === "string" ? x.trim() : "")).filter((s) => s !== "");
+        if (items.length === 0) {
+            continue;
+        }
+        const steps: PlanStepTemplate[] = items.map((step, step_index) => ({
+            step_index,
+            step,
+            status: "unknown",
+            status_label: "",
+        }));
+        plan_groups.push({
+            group_index,
+            title: typeof rec.title === "string" ? rec.title : "",
+            steps,
+        });
+        skip_block_indexes.add(index);
+        group_index += 1;
+    }
+
+    const plan_section_title =
+        plan_groups.length === 1 && plan_groups[0]?.title.trim() !== "" ? plan_groups[0].title : "Plan";
+
+    return {plan_section_title, plan_groups, skip_block_indexes};
+}
+
+function normalize_todo_blocks(extra_data: SpAiWidgetExtraData): {
+    todo_section_title: string;
+    todo_groups: TodoGroupTemplate[];
+    skip_block_indexes: Set<number>;
+} {
+    const blocks = Array.isArray(extra_data.turn?.blocks) ? extra_data.turn?.blocks : [];
+    const skip_block_indexes = new Set<number>();
+    const todo_groups: TodoGroupTemplate[] = [];
+
+    let group_index = 0;
+    for (const [index, block] of blocks.entries()) {
+        // v2 structured block
+        const parsed = sp_ai_todo_v2_block_schema.safeParse(block);
+        if (parsed.success) {
+            const raw_items = parsed.data.items ?? [];
+            if (!Array.isArray(raw_items) || raw_items.length === 0) {
+                continue;
+            }
+            const items: TodoItemTemplate[] = raw_items
+                .map((row, item_index) => {
+                    const text = String(row.text ?? "").trim();
+                    if (text === "") {
+                        return null;
+                    }
+                    return {item_index, text, checked: row.checked === true};
+                })
+                .filter(Boolean) as TodoItemTemplate[];
+            if (items.length === 0) {
+                continue;
+            }
+            todo_groups.push({
+                group_index,
+                title: parsed.data.title ?? "",
+                items,
+            });
+            skip_block_indexes.add(index);
+            group_index += 1;
+            continue;
+        }
+
+        // Legacy todo list: {kind:"todo", items:["[x] ...", "[ ] ..."]}
+        const rec: any = block && typeof block === "object" ? block : {};
+        if (String(rec.kind || "") !== "todo") {
+            continue;
+        }
+        const raw_items: unknown[] = Array.isArray(rec.items) ? rec.items : [];
+        const items: TodoItemTemplate[] = [];
+        for (const [item_index, raw] of raw_items.entries()) {
+            if (typeof raw !== "string") {
+                continue;
+            }
+            const s = raw.trim();
+            const m = /^\s*\[( |x|X)\]\s+([\s\S]*)$/.exec(s);
+            if (!m) {
+                continue;
+            }
+            const text = String(m[2] || "").trim();
+            if (text === "") {
+                continue;
+            }
+            items.push({item_index, text, checked: m[1].toLowerCase() === "x"});
+        }
+        if (items.length === 0) {
+            continue;
+        }
+        todo_groups.push({
+            group_index,
+            title: typeof rec.title === "string" ? rec.title : "",
+            items,
+        });
+        skip_block_indexes.add(index);
+        group_index += 1;
+    }
+
+    const todo_section_title =
+        todo_groups.length === 1 && todo_groups[0]?.title.trim() !== "" ? todo_groups[0].title : "Todo";
+
+    return {todo_section_title, todo_groups, skip_block_indexes};
+}
 
     if (duration_ms < 1000) {
         return `${Math.round(duration_ms)}ms`;
@@ -784,9 +999,23 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         skip_block_indexes: background_skip_block_indexes,
     } = normalize_background_tasks(extra_data);
 
+    const {
+        plan_section_title,
+        plan_groups,
+        skip_block_indexes: plan_skip_block_indexes,
+    } = normalize_plan_blocks(extra_data);
+
+    const {
+        todo_section_title,
+        todo_groups,
+        skip_block_indexes: todo_skip_block_indexes,
+    } = normalize_todo_blocks(extra_data);
+
     const skip_block_indexes = new Set<number>([
         ...subagent_skip_block_indexes,
         ...background_skip_block_indexes,
+        ...plan_skip_block_indexes,
+        ...todo_skip_block_indexes,
     ]);
 
     const parsed = widget_state_schema.safeParse({
@@ -854,6 +1083,12 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
             has_background_tasks: background_task_groups.length > 0,
             background_tasks_section_title,
             background_task_groups,
+            has_plan_blocks: plan_groups.length > 0,
+            plan_section_title,
+            plan_groups,
+            has_todo_blocks: todo_groups.length > 0,
+            todo_section_title,
+            todo_groups,
         };
     }
 
@@ -879,6 +1114,12 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         has_background_tasks: background_task_groups.length > 0,
         background_tasks_section_title,
         background_task_groups,
+        has_plan_blocks: plan_groups.length > 0,
+        plan_section_title,
+        plan_groups,
+        has_todo_blocks: todo_groups.length > 0,
+        todo_section_title,
+        todo_groups,
     };
 }
 
