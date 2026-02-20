@@ -23,6 +23,45 @@ export const sp_ai_subagent_schema = z.object({
     error: z.optional(z.string()),
 });
 
+export const sp_ai_plan_step_schema = z.catchall(
+    z.object({
+        step: z.string(),
+        status: z.optional(z.string()),
+    }),
+    z.unknown(),
+);
+
+export const sp_ai_plan_v2_block_schema = z.catchall(
+    z.object({
+        kind: z.literal("plan_v2"),
+        title: z.optional(z.string()),
+        steps: z.optional(z.array(sp_ai_plan_step_schema)),
+        // Optional legacy fallback.
+        items: z.optional(z.array(z.string())),
+        text: z.optional(z.string()),
+    }),
+    z.unknown(),
+);
+
+export const sp_ai_todo_item_v2_schema = z.catchall(
+    z.object({
+        text: z.string(),
+        checked: z.optional(z.boolean()),
+    }),
+    z.unknown(),
+);
+
+export const sp_ai_todo_v2_block_schema = z.catchall(
+    z.object({
+        kind: z.literal("todo_v2"),
+        title: z.optional(z.string()),
+        items: z.optional(z.array(sp_ai_todo_item_v2_schema)),
+        // Optional legacy fallback.
+        text: z.optional(z.string()),
+    }),
+    z.unknown(),
+);
+
 export const sp_ai_subagent_group_block_schema = z.catchall(
     z.object({
         kind: z.literal("subagent_group"),
@@ -149,6 +188,8 @@ const sp_ai_known_turn_block_schema = z.union([
     ),
     sp_ai_subagent_group_block_schema,
     sp_ai_background_tasks_block_schema,
+    sp_ai_plan_v2_block_schema,
+    sp_ai_todo_v2_block_schema,
 ]);
 
 const sp_ai_unknown_turn_block_schema = z.catchall(

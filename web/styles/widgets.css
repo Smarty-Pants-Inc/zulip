@@ -793,6 +793,115 @@
         max-height: 180px;
     }
 
+    .sp-ai-plan-groups {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sp-ai-plan-group-title {
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    .sp-ai-plan-list {
+        margin: 6px 0 0;
+        padding: 0 0 0 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sp-ai-plan-step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: start;
+    }
+
+    .sp-ai-plan-step-status {
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: var(--color-background-widget-button);
+        white-space: nowrap;
+        line-height: 1.4;
+    }
+
+    .sp-ai-plan-step-status-pending {
+        color: hsl(220deg 14% 40%);
+    }
+
+    .sp-ai-plan-step-status-running {
+        color: hsl(200deg 79% 30%);
+    }
+
+    .sp-ai-plan-step-status-ok {
+        color: hsl(156deg 41% 35%);
+    }
+
+    .sp-ai-plan-step-status-error {
+        color: hsl(1deg 45% 45%);
+    }
+
+    .sp-ai-plan-step-status-unknown {
+        color: hsl(0deg 0% 40%);
+    }
+
+    .sp-ai-plan-step-text {
+        opacity: 0.95;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-todo-groups {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sp-ai-todo-group-title {
+        font-weight: 600;
+        opacity: 0.9;
+    }
+
+    .sp-ai-todo-list {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sp-ai-todo-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .sp-ai-todo-checkbox {
+        margin-top: 2px;
+        color: hsl(220deg 14% 40%);
+    }
+
+    .sp-ai-todo-item-checked .sp-ai-todo-checkbox {
+        color: hsl(156deg 41% 35%);
+    }
+
+    .sp-ai-todo-text {
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-todo-item-checked .sp-ai-todo-text {
+        opacity: 0.65;
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+    }
+
     .sp-ai-section {
         margin-top: 8px;
 
