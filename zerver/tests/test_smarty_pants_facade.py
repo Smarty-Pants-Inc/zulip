@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import hmac
 from datetime import timedelta
+from hashlib import sha256
 from unittest import mock
 
 import orjson
@@ -22,22 +24,33 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
     - GET/POST /api/s2s/smarty_pants/realm/branding
 
     This endpoint is intended for provisioning/automation and is authenticated
-    via the shared secret configured in SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET.
+    via the shared secret configured in ZULIP_SHARED_SECRET.
     """
 
     def setUp(self) -> None:
         super().setUp()
         self.realm = get_realm("zulip")
 
-    def _headers(self, *, token: str | None) -> dict[str, str]:
+    def _headers(
+        self, *, token: str | None = None, method: str = "POST", path: str = "/"
+    ) -> dict[str, str]:
         if token is None:
             return {}
-        return {"x-smarty-pants-secret": token}
+
+        ts = int(timezone_now().timestamp() * 1000)
+        nonce = os.urandom(16).hex()
+        canonical = f"{method.upper()}\n{path}\n{ts}\n{nonce}"
+        sig = hmac.new(token.encode("utf-8"), canonical.encode("utf-8"), sha256).hexdigest()
+        return {
+            "X-SP-S2S-Timestamp": str(ts),
+            "X-SP-S2S-Nonce": nonce,
+            "X-SP-S2S-Signature": sig,
+        }
 
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -50,14 +63,14 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
     def test_get_returns_effective_branding(self) -> None:
         result = self.client_get(
             f"/api/s2s/smarty_pants/realm/branding?realm_id={self.realm.id}",
-            headers=self._headers(token="test-secret"),
+            headers=self._headers(token="test-secret", method="GET", path="/api/s2s/smarty_pants/realm/branding"),
         )
         payload = self.assert_json_success(result)
         self.assertEqual(payload["realm_id"], self.realm.id)
@@ -67,7 +80,7 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -81,7 +94,7 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/realm/branding",
             orjson.dumps(post_payload),
             content_type="application/json",
-            headers=self._headers(token="test-secret"),
+            headers=self._headers(token="test-secret", method="POST", path="/api/s2s/smarty_pants/realm/branding"),
         )
         payload = self.assert_json_success(result)
         self.assertEqual(payload["overrides"]["name"], "RealmBrand")
@@ -96,7 +109,7 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/realm/branding",
             orjson.dumps(clear_payload),
             content_type="application/json",
-            headers=self._headers(token="test-secret"),
+            headers=self._headers(token="test-secret", method="POST", path="/api/s2s/smarty_pants/realm/branding"),
         )
         payload = self.assert_json_success(result)
         self.assertEqual(payload["overrides"], {})
@@ -111,8 +124,16 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
         self.subscribe(self.admin, "Denmark")
         self.subscribe(self.sponsor, "Denmark")
 
-    def _headers(self) -> dict[str, str]:
-        return {"x-smarty-pants-secret": "test-secret"}
+    def _headers(self, *, method: str = "POST", path: str = "/") -> dict[str, str]:
+        ts = int(timezone_now().timestamp() * 1000)
+        nonce = os.urandom(16).hex()
+        canonical = f"{method.upper()}\n{path}\n{ts}\n{nonce}"
+        sig = hmac.new(b"test-secret", canonical.encode("utf-8"), sha256).hexdigest()
+        return {
+            "X-SP-S2S-Timestamp": str(ts),
+            "X-SP-S2S-Nonce": nonce,
+            "X-SP-S2S-Signature": sig,
+        }
 
     def tearDown(self) -> None:
         cache.clear()
@@ -121,7 +142,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -143,7 +164,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/messages/send_stream_as_user",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/messages/send_stream_as_user"),
         )
         response_json = self.assert_json_success(result)
 
@@ -153,7 +174,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -175,14 +196,14 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/messages/send_stream_as_user",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/messages/send_stream_as_user"),
         )
         self.assertEqual(result.status_code, 403)
 
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -204,7 +225,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/messages/send_stream_as_user",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/messages/send_stream_as_user"),
         )
         response_json = self.assert_json_success(result)
         msg = Message.objects.get(id=response_json["id"], realm_id=self.realm.id)
@@ -213,7 +234,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -244,7 +265,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/messages/send_stream_topic_batch",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/messages/send_stream_topic_batch"),
         )
         response_json = self.assert_json_success(result)
         self.assertTrue(response_json["ok"])
@@ -258,7 +279,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -284,14 +305,14 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/messages/send_stream_topic_batch",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/messages/send_stream_topic_batch"),
         )
         self.assertEqual(result.status_code, 403)
 
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -311,7 +332,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         self.assertEqual(result.status_code, 403)
         mock_call_control_plane.assert_not_called()
@@ -319,7 +340,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -360,7 +381,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         first_json = self.assert_json_success(first)
         self.assertEqual(first_json["tool"], "cp.project_agents.provision_defaults")
@@ -392,7 +413,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         second_json = self.assert_json_success(second)
         second_rows = second_json["result"]["projects"]
@@ -407,7 +428,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -428,7 +449,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         response_json = self.assert_json_success(result)
         self.assertEqual(response_json["deduped"], False)
@@ -437,7 +458,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -457,7 +478,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
                 "/api/s2s/smarty_pants/tools/execute",
                 orjson.dumps(payload),
                 content_type="application/json",
-                headers=self._headers(),
+                headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
             )
 
         self.assert_json_error(result, "Invoker message is too old.")
@@ -466,7 +487,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -494,7 +515,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload_one),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         first_json = self.assert_json_success(first)
         self.assertEqual(first_json["deduped"], False)
@@ -503,7 +524,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload_two),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         second_json = self.assert_json_success(second)
         self.assertEqual(second_json["deduped"], True)
@@ -513,7 +534,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
     @mock.patch.dict(
         os.environ,
         {
-            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "ZULIP_SHARED_SECRET": "test-secret",
         },
         clear=False,
     )
@@ -534,7 +555,7 @@ class SmartyPantsToolsS2STestCase(ZulipTestCase):
             "/api/s2s/smarty_pants/tools/execute",
             orjson.dumps(payload),
             content_type="application/json",
-            headers=self._headers(),
+            headers=self._headers(path="/api/s2s/smarty_pants/tools/execute"),
         )
         self.assert_json_success(result)
         mock_call_control_plane.assert_called_once()
