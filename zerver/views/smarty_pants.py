@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hmac
 import os
 import re
 import time
@@ -93,6 +94,16 @@ DEFAULT_PROJECT_AGENT_CHANNELS = ("smarty-code", "smarty-graph", "smarty-chat")
 SMARTY_PANTS_CONTROL_PLANE_BASE_URL_ENV_VAR = "SMARTY_PANTS_CONTROL_PLANE_BASE_URL"
 # Shared secret validated by Convex `checkZulipFacadeAuth`.
 SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET_ENV_VAR = "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET"
+
+# Authentication mode for S2S /api/s2s/smarty_pants/* endpoints.
+# - legacy: shared secret is passed in a header and (optionally) request payload.
+# - signed: nonce+timestamp+signature headers are required.
+# - both: accept either scheme (default).
+SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR = "SMARTY_PANTS_S2S_AUTH_MODE"
+
+SMARTY_PANTS_S2S_SIGNED_AUTH_WINDOW_MS = 5 * 60 * 1000
+SMARTY_PANTS_S2S_SIGNED_NONCE_TTL_SECONDS = 10 * 60
+SMARTY_PANTS_S2S_SIGNED_NONCE_CACHE_VERSION = 1
 
 SMARTY_PANTS_S2S_INVOCATION_FRESHNESS_WINDOW = timedelta(minutes=10)
 SMARTY_PANTS_S2S_IDEMPOTENCY_TTL_SECONDS = 15 * 60
@@ -205,6 +216,100 @@ def _require_smarty_pants_shared_secret(request: HttpRequest, *, payload: dict[s
         raise AccessDeniedError()
 
 
+def _get_smarty_pants_s2s_auth_mode() -> str:
+    raw = os.environ.get(SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR, "both")
+    mode = raw.strip().lower()
+    if not mode:
+        mode = "both"
+    if mode not in {"legacy", "signed", "both"}:
+        # Fail closed if misconfigured.
+        raise JsonableError(
+            _("Invalid {var} value; must be 'legacy', 'signed', or 'both'.").format(
+                var=SMARTY_PANTS_S2S_AUTH_MODE_ENV_VAR
+            )
+        )
+    return mode
+
+
+def _has_smarty_pants_signed_auth_headers(request: HttpRequest) -> bool:
+    return any(
+        request.headers.get(name) is not None
+        for name in ("X-SP-S2S-Timestamp", "X-SP-S2S-Nonce", "X-SP-S2S-Signature")
+    )
+
+
+def _require_smarty_pants_signed_auth(request: HttpRequest) -> None:
+    expected_secret = _get_smarty_pants_shared_secret()
+
+    timestamp_raw = request.headers.get("X-SP-S2S-Timestamp")
+    nonce_raw = request.headers.get("X-SP-S2S-Nonce")
+    signature_raw = request.headers.get("X-SP-S2S-Signature")
+    if timestamp_raw is None or nonce_raw is None or signature_raw is None:
+        raise AccessDeniedError()
+
+    timestamp_raw = timestamp_raw.strip()
+    nonce = nonce_raw.strip()
+    signature = signature_raw.strip().lower()
+    if not timestamp_raw or not nonce or not signature:
+        raise AccessDeniedError()
+
+    # Limit nonce size to keep cache keys bounded.
+    if len(nonce) > 256:
+        raise AccessDeniedError()
+
+    try:
+        timestamp_ms = int(timestamp_raw)
+    except ValueError:
+        raise AccessDeniedError()
+
+    now_ms = int(time.time() * 1000)
+    if abs(now_ms - timestamp_ms) > SMARTY_PANTS_S2S_SIGNED_AUTH_WINDOW_MS:
+        raise AccessDeniedError()
+
+    # Signature = HMAC-SHA256(secret, `${method}\n${path}\n${timestamp}\n${nonce}`)
+    # NOTE: We intentionally use request.path (no query string) to keep signing stable.
+    # Use the header's timestamp string (rather than the int-normalized form) so
+    # clients can safely sign with their original header value.
+    signing_payload = "\n".join([request.method.upper(), request.path, timestamp_raw, nonce])
+    computed = hmac.new(
+        expected_secret.encode("utf-8"),
+        signing_payload.encode("utf-8"),
+        sha256,
+    ).hexdigest()
+    if not constant_time_compare(signature, computed):
+        raise AccessDeniedError()
+
+    # Replay protection: record nonce for 10 minutes.
+    nonce_hash = sha256(nonce.encode("utf-8")).hexdigest()
+    cache_key = f"smarty_pants:s2s_signed_nonce:v{SMARTY_PANTS_S2S_SIGNED_NONCE_CACHE_VERSION}:{nonce_hash}"
+    if not cache.add(cache_key, "1", timeout=SMARTY_PANTS_S2S_SIGNED_NONCE_TTL_SECONDS):
+        raise AccessDeniedError()
+
+
+def _require_smarty_pants_s2s_auth(
+    request: HttpRequest,
+    *,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    mode = _get_smarty_pants_s2s_auth_mode()
+
+    if mode == "legacy":
+        _require_smarty_pants_shared_secret(request, payload=payload)
+        return
+
+    if mode == "signed":
+        _require_smarty_pants_signed_auth(request)
+        return
+
+    # mode == "both":
+    # If any signed auth headers are present, treat this as a signed request and
+    # do not fall back to legacy.
+    if _has_smarty_pants_signed_auth_headers(request):
+        _require_smarty_pants_signed_auth(request)
+    else:
+        _require_smarty_pants_shared_secret(request, payload=payload)
+
+
 def _coerce_optional_trimmed_string(value: object, *, field_name: str) -> str | None:
     if value is None:
         return None
@@ -284,7 +389,7 @@ def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
     """
 
     if request.method == "GET":
-        _require_smarty_pants_shared_secret(request)
+        _require_smarty_pants_s2s_auth(request)
         realm = _get_realm_for_s2s_request(request.GET.get("realm_id") or request.GET.get("realmId"))
         branding_row = RealmBranding.objects.filter(realm=realm).first()
         overrides = _realm_branding_overrides_dict(branding_row)
@@ -295,7 +400,7 @@ def s2s_realm_branding(request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
 
     branding_payload: dict[str, Any] | None = None
@@ -453,7 +558,7 @@ def s2s_smarty_pants_authz_check(request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     user_id = _coerce_int_param(payload.get("user_id") or payload.get("userId"), field_name="user_id")
 
@@ -1993,7 +2098,7 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2291,7 +2396,7 @@ def s2s_smarty_pants_messages_send_stream_as_user(request: HttpRequest) -> HttpR
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2456,7 +2561,7 @@ def s2s_smarty_pants_messages_send_stream_topic_batch(request: HttpRequest) -> H
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
@@ -2659,7 +2764,7 @@ def s2s_smarty_pants_messages_purge_topic(request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=405)
 
     payload = _parse_request_payload(request)
-    _require_smarty_pants_shared_secret(request, payload=payload)
+    _require_smarty_pants_s2s_auth(request, payload=payload)
 
     realm = _get_realm_for_s2s_request(payload.get("realm_id") or payload.get("realmId"))
     invoker_user_id = _coerce_int_param(
