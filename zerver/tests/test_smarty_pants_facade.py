@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
+import uuid
 from datetime import timedelta
 from unittest import mock
 
@@ -100,6 +103,149 @@ class SmartyPantsRealmBrandingS2STestCase(ZulipTestCase):
         )
         payload = self.assert_json_success(result)
         self.assertEqual(payload["overrides"], {})
+
+
+class SmartyPantsSignedAuthS2STestCase(ZulipTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.realm = get_realm("zulip")
+
+    def tearDown(self) -> None:
+        cache.clear()
+        super().tearDown()
+
+    def _signed_headers(
+        self,
+        *,
+        method: str,
+        path: str,
+        nonce: str | None = None,
+        timestamp_ms: int | None = None,
+        secret: str = "test-secret",
+    ) -> dict[str, str]:
+        if nonce is None:
+            nonce = uuid.uuid4().hex
+        if timestamp_ms is None:
+            timestamp_ms = int(timezone_now().timestamp() * 1000)
+
+        payload = "\n".join([method.upper(), path, str(timestamp_ms), nonce])
+        signature = hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        return {
+            "X-SP-S2S-Timestamp": str(timestamp_ms),
+            "X-SP-S2S-Nonce": nonce,
+            "X-SP-S2S-Signature": signature,
+        }
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "signed",
+        },
+        clear=False,
+    )
+    def test_signed_auth_allows_request_without_legacy_secret(self) -> None:
+        path = "/api/s2s/smarty_pants/realm/branding"
+        result = self.client_get(
+            f"{path}?realm_id={self.realm.id}",
+            headers=self._signed_headers(method="GET", path=path),
+        )
+        self.assert_json_success(result)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "signed",
+        },
+        clear=False,
+    )
+    def test_signed_auth_rejects_legacy_secret_only(self) -> None:
+        path = "/api/s2s/smarty_pants/realm/branding"
+        result = self.client_get(
+            f"{path}?realm_id={self.realm.id}",
+            headers={"x-smarty-pants-secret": "test-secret"},
+        )
+        self.assertEqual(result.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "signed",
+        },
+        clear=False,
+    )
+    def test_signed_auth_rejects_payload_secret_only(self) -> None:
+        path = "/api/s2s/smarty_pants/realm/branding"
+        result = self.client_post(
+            path,
+            orjson.dumps({"realm_id": self.realm.id, "branding": {"name": "X"}, "secret": "test-secret"}),
+            content_type="application/json",
+        )
+        self.assertEqual(result.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "signed",
+        },
+        clear=False,
+    )
+    def test_signed_auth_rejects_replay_nonce(self) -> None:
+        path = "/api/s2s/smarty_pants/realm/branding"
+        nonce = "nonce-replay"
+        timestamp_ms = int(timezone_now().timestamp() * 1000)
+        headers = self._signed_headers(method="GET", path=path, nonce=nonce, timestamp_ms=timestamp_ms)
+
+        first = self.client_get(f"{path}?realm_id={self.realm.id}", headers=headers)
+        self.assert_json_success(first)
+
+        second = self.client_get(f"{path}?realm_id={self.realm.id}", headers=headers)
+        self.assertEqual(second.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "signed",
+        },
+        clear=False,
+    )
+    @mock.patch("zerver.views.smarty_pants.time.time")
+    def test_signed_auth_rejects_expired_timestamp(self, mock_time: mock.Mock) -> None:
+        # zerver.views.smarty_pants uses time.time() to validate +/- 5 minutes.
+        mock_time.return_value = 1000.0
+        now_ms = int(mock_time.return_value * 1000)
+        timestamp_ms = now_ms - (6 * 60 * 1000)
+
+        path = "/api/s2s/smarty_pants/realm/branding"
+        headers = self._signed_headers(method="GET", path=path, nonce="nonce-expired", timestamp_ms=timestamp_ms)
+        result = self.client_get(f"{path}?realm_id={self.realm.id}", headers=headers)
+        self.assertEqual(result.status_code, 403)
+
+    @mock.patch.dict(
+        os.environ,
+        {
+            "SMARTY_PANTS_ZULIP_FACADE_SHARED_SECRET": "test-secret",
+            "SMARTY_PANTS_S2S_AUTH_MODE": "both",
+        },
+        clear=False,
+    )
+    def test_both_mode_does_not_fall_back_to_legacy_if_signed_headers_present(self) -> None:
+        path = "/api/s2s/smarty_pants/realm/branding"
+
+        # Valid legacy secret but invalid signature.
+        headers = {
+            "x-smarty-pants-secret": "test-secret",
+            "X-SP-S2S-Timestamp": str(int(timezone_now().timestamp() * 1000)),
+            "X-SP-S2S-Nonce": "nonce-bad-sig",
+            "X-SP-S2S-Signature": "0" * 64,
+        }
+
+        result = self.client_get(f"{path}?realm_id={self.realm.id}", headers=headers)
+        self.assertEqual(result.status_code, 403)
 
 
 class SmartyPantsToolsS2STestCase(ZulipTestCase):
