@@ -78,7 +78,19 @@ export function process_submessages(in_opts: {$row: JQuery; message_id: number})
         do_process_submessages(in_opts);
         return;
     } catch (error) {
-        blueslip.error("Failed to do_process_submessages", undefined, error);
+        // In production, blueslip.error reports to Sentry but does not print the original
+        // exception details to console. Include a clipped error string so E2E runs and
+        // live debugging can see what went wrong without needing Sentry.
+        let err_text: string;
+        if (error instanceof Error) {
+            err_text = String(error.stack || error.message || error);
+        } else {
+            err_text = String(error);
+        }
+        if (err_text.length > 1200) {
+            err_text = err_text.slice(0, 1200) + "... [clipped]";
+        }
+        blueslip.error("Failed to do_process_submessages", {error: err_text}, error);
         return;
     }
 }
