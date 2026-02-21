@@ -169,6 +169,20 @@ function format_duration_ms(duration_ms: number): string {
         return "";
     }
 
+    if (duration_ms < 1000) {
+        return `${Math.round(duration_ms)}ms`;
+    }
+
+    const seconds = duration_ms / 1000;
+    if (seconds < 60) {
+        return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const rem_seconds = Math.round(seconds % 60);
+    return `${minutes}m ${rem_seconds}s`;
+}
+
 function normalize_plan_step_status(raw_status: string): {status: PlanStepStatusClass; label: string} {
     const raw = raw_status.trim();
     const s = raw.toLowerCase();
@@ -347,20 +361,6 @@ function normalize_todo_blocks(extra_data: SpAiWidgetExtraData): {
         todo_groups.length === 1 && todo_groups[0]?.title.trim() !== "" ? todo_groups[0].title : "Todo";
 
     return {todo_section_title, todo_groups, skip_block_indexes};
-}
-
-    if (duration_ms < 1000) {
-        return `${Math.round(duration_ms)}ms`;
-    }
-
-    const seconds = duration_ms / 1000;
-    if (seconds < 60) {
-        return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
-    }
-
-    const minutes = Math.floor(seconds / 60);
-    const rem_seconds = Math.round(seconds % 60);
-    return `${minutes}m ${rem_seconds}s`;
 }
 
 function format_runtime_sec(runtime_sec: number): string {
