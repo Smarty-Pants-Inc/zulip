@@ -96,6 +96,7 @@ type SubagentTemplate = {
 
 type SubagentGroupTemplate = {
     title: string;
+    has_agents: boolean;
     agents: SubagentTemplate[];
     fallback_text: string;
 };
@@ -510,6 +511,7 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
 
         subagent_groups.push({
             title: parsed.data.title ?? "",
+            has_agents: normalized_agents.length > 0,
             agents: normalized_agents,
             fallback_text,
         });
