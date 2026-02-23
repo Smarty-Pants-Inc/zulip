@@ -250,15 +250,6 @@ function normalize_plan_blocks(extra_data: SpAiWidgetExtraData): {
                 title: parsed.data.title ?? "",
                 steps,
             });
-
-        // Scroll subagent outputs to the bottom so streaming-like previews show the latest lines.
-        opts.$elem.find("pre.sp-ai-subagent-output").each(function () {
-            try {
-                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
-            } catch {
-                // Ignore scroll failures; output preview is best-effort.
-            }
-        });
             skip_block_indexes.add(index);
             group_index += 1;
             continue;
@@ -1394,6 +1385,15 @@ export function activate(opts: {
             }
 
             void copy_text(task.command);
+        });
+
+        // Scroll subagent outputs to the bottom so "streamy" previews show the latest lines.
+        opts.$elem.find("pre.sp-ai-subagent-output").each(function () {
+            try {
+                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
+            } catch {
+                // Ignore scroll failures; output preview is best-effort.
+            }
         });
 
         opts.$elem.find("button[data-action]").on("click", (e) => {
