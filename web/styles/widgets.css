@@ -425,17 +425,20 @@
 
     .sp-ai-btn {
         flex: 0 0 auto;
-        height: var(--sp-widget-row-height);
+        /* Use a fallback here; sp_ai cards don't always inherit the --sp-widget-row-height
+           variable defined on .sp-widget-card. */
+        min-height: var(--sp-widget-row-height, 32px);
+        height: auto;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border: 1px solid var(--color-border-dropdown-widget-button);
         border-radius: 8px;
-        padding: 0 12px;
+        padding: 6px 12px;
         background-color: var(--color-background-widget-button);
         font-weight: 600;
         font-size: 0.857em;
-        line-height: 1;
+        line-height: 1.2;
         cursor: pointer;
 
         &:hover {
