@@ -446,6 +446,19 @@
         }
     }
 
+    .sp-ai-subagent-output {
+        margin: 6px 0 0;
+        padding: 8px 10px;
+        max-height: 7.5em;
+        overflow: auto;
+        background-color: var(--color-background-widget-input);
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 8px;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        line-height: 1.35;
+        white-space: pre-wrap;
+    }
+
     .sp-ai-btn-approve {
         border-color: color-mix(in srgb, #22c55e 35%, var(--color-border-dropdown-widget-button));
         background-color: color-mix(in srgb, #22c55e 10%, var(--color-background-widget-button));

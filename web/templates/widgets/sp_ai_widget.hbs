@@ -111,6 +111,23 @@
             <div class="sp-ai-caption">{{caption}}</div>
         {{/if}}
 
+        {{#if has_args_block}}
+            <div class="sp-ai-tool-section sp-ai-panel-section">
+                <div class="sp-ai-tool-section-header">
+                    <h4 class="sp-ai-tool-section-title">{{args_block_title}}</h4>
+                    <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy-block="{{args_block_index}}" aria-label="Copy">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="sp-ai-tool-codewrap">
+                    <pre class="sp-ai-tool-code" data-language="{{args_block_language}}">{{args_block_text}}</pre>
+                </div>
+            </div>
+        {{/if}}
+
         {{#if has_background_tasks}}
             <details class="sp-ai-section sp-ai-background-tasks-section" open>
                 <summary>
@@ -402,6 +419,10 @@
                                             <span class="sp-ai-subagent-desc">{{description}}</span>
                                         </div>
 
+                                        {{#if has_output_preview}}
+                                            <pre class="sp-ai-pre sp-ai-subagent-output">{{output_preview}}</pre>
+                                        {{/if}}
+
                                         {{#if meta_line}}
                                             <div class="sp-ai-subagent-meta">{{meta_line}}</div>
                                         {{/if}}
@@ -447,6 +468,10 @@
                                                 <span class="sp-ai-subagent-type">{{type}}</span>
                                                 <span class="sp-ai-subagent-desc">{{description}}</span>
                                             </div>
+
+                                            {{#if has_output_preview}}
+                                                <pre class="sp-ai-pre sp-ai-subagent-output">{{output_preview}}</pre>
+                                            {{/if}}
 
                                             {{#if meta_line}}
                                                 <div class="sp-ai-subagent-meta">{{meta_line}}</div>

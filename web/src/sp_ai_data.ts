@@ -21,6 +21,7 @@ export const sp_ai_subagent_schema = z.object({
     agentURL: z.optional(z.string()),
     model: z.optional(z.string()),
     error: z.optional(z.string()),
+    outputPreview: z.optional(z.string()),
 });
 
 export const sp_ai_plan_step_schema = z.catchall(

@@ -89,6 +89,8 @@ type SubagentTemplate = {
     description: string;
     status: SubagentStatusClass;
     status_label: string;
+    has_output_preview: boolean;
+    output_preview: string;
     meta_line: string;
     agentURL: string;
     error: string;
@@ -248,6 +250,15 @@ function normalize_plan_blocks(extra_data: SpAiWidgetExtraData): {
                 title: parsed.data.title ?? "",
                 steps,
             });
+
+        // Scroll subagent outputs to the bottom so streaming-like previews show the latest lines.
+        opts.$elem.find("pre.sp-ai-subagent-output").each(function () {
+            try {
+                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
+            } catch {
+                // Ignore scroll failures; output preview is best-effort.
+            }
+        });
             skip_block_indexes.add(index);
             group_index += 1;
             continue;
@@ -510,11 +521,16 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
                 meta_parts.push(agent.model.trim());
             }
 
+            const output_preview = typeof agent.outputPreview === "string" ? agent.outputPreview : "";
+            const has_output_preview = output_preview.trim() !== "";
+
             return {
                 type: type !== "" ? type : "subagent",
                 description: agent.description ?? "",
                 status,
                 status_label: label,
+                has_output_preview,
+                output_preview,
                 meta_line: meta_parts.join(" · "),
                 agentURL: agent.agentURL ?? "",
                 error: agent.error ?? "",
@@ -1240,6 +1256,22 @@ export function activate(opts: {
             };
         });
 
+        // Tool-call parity: show Args/Parameters at the very top of the card.
+        const argsBlock = blocks_for_template.find((b) => {
+            if (b.kind !== "code") return false;
+            const t = String(b.title || "").trim().toLowerCase();
+            return t === "args" || t === "arguments" || t === "parameters";
+        });
+        const has_args_block = argsBlock !== undefined;
+        const args_block_index = argsBlock?.index ?? -1;
+        const args_block_title = argsBlock?.title ?? "Args";
+        const args_block_language = argsBlock?.language ?? "";
+        const args_block_text = argsBlock?.text ?? "";
+
+        const blocks_without_args = has_args_block
+            ? blocks_for_template.filter((b) => b.index !== args_block_index)
+            : blocks_for_template;
+
         const html = render_widgets_sp_ai_widget({
             ...state,
             kind_label: kind_label(state.kind),
@@ -1278,7 +1310,13 @@ export function activate(opts: {
                 !state.has_background_tasks &&
                 state.output !== "",
             has_blocks: state.blocks.length > 0,
-            blocks: blocks_for_template,
+            has_args_block,
+            args_block_index,
+            args_block_title,
+            args_block_language,
+            args_block_text,
+            has_blocks: blocks_without_args.length > 0,
+            blocks: blocks_without_args,
             show_abort: state.status === "running",
             show_retry: state.status !== "running",
             show_approve: state.kind === "ask",
