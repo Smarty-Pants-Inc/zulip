@@ -311,7 +311,7 @@
                 {{/each}}
             </div>
         {{else}}
-            {{#if has_input}}
+            {{#if (eq has_input true)}}
                 <div class="sp-ai-tool-section">
                     <div class="sp-ai-tool-section-header">
                         <h4 class="sp-ai-tool-section-title">Parameters</h4>
@@ -328,7 +328,7 @@
                 </div>
             {{/if}}
 
-            {{#if has_output}}
+            {{#if (eq has_output true)}}
                 <div class="sp-ai-tool-section">
                     <div class="sp-ai-tool-section-header">
                         <h4 class="sp-ai-tool-section-title">Output</h4>
@@ -558,7 +558,7 @@
         </details>
     {{/if}}
 
-    {{#if has_input}}
+    {{#if (eq has_input true)}}
         <div class="sp-ai-tool-section sp-ai-panel-section">
             <div class="sp-ai-tool-section-header">
                 <h4 class="sp-ai-tool-section-title">Input</h4>
@@ -575,7 +575,7 @@
         </div>
     {{/if}}
 
-    {{#if has_output}}
+    {{#if (eq has_output true)}}
         <div class="sp-ai-tool-section sp-ai-panel-section">
             <div class="sp-ai-tool-section-header">
                 <h4 class="sp-ai-tool-section-title">Output</h4>
