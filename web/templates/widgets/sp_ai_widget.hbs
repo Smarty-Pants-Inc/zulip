@@ -429,7 +429,17 @@
                                         </div>
 
                                         {{#if has_output_preview}}
-                                            <pre class="sp-ai-pre sp-ai-subagent-output">{{output_preview}}</pre>
+                                            {{#if has_output_more}}
+                                                <details class="sp-ai-subagent-output-details">
+                                                    <summary class="sp-ai-subagent-output-summary">
+                                                        <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
+                                                        <span class="sp-ai-subagent-output-more">{{output_preview_more_label}}</span>
+                                                    </summary>
+                                                    <pre class="sp-ai-subagent-output-full">{{output_preview}}</pre>
+                                                </details>
+                                            {{else}}
+                                                <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
+                                            {{/if}}
                                         {{/if}}
 
                                         {{#if meta_line}}
@@ -479,7 +489,17 @@
                                             </div>
 
                                             {{#if has_output_preview}}
-                                                <pre class="sp-ai-pre sp-ai-subagent-output">{{output_preview}}</pre>
+                                                {{#if has_output_more}}
+                                                    <details class="sp-ai-subagent-output-details">
+                                                        <summary class="sp-ai-subagent-output-summary">
+                                                            <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
+                                                            <span class="sp-ai-subagent-output-more">{{output_preview_more_label}}</span>
+                                                        </summary>
+                                                        <pre class="sp-ai-subagent-output-full">{{output_preview}}</pre>
+                                                    </details>
+                                                {{else}}
+                                                    <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
+                                                {{/if}}
                                             {{/if}}
 
                                             {{#if meta_line}}

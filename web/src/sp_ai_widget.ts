@@ -91,6 +91,9 @@ type SubagentTemplate = {
     status_label: string;
     has_output_preview: boolean;
     output_preview: string;
+    has_output_more: boolean;
+    output_preview_tail: string;
+    output_preview_more_label: string;
     meta_line: string;
     agentURL: string;
     error: string;
@@ -513,7 +516,18 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
             }
 
             const output_preview = typeof agent.outputPreview === "string" ? agent.outputPreview : "";
-            const has_output_preview = output_preview.trim() !== "";
+            const output_preview_trimmed = output_preview.trim();
+            const has_output_preview = output_preview_trimmed !== "";
+            const lines = has_output_preview
+                ? output_preview_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
+                : [];
+            const tail_lines = lines.length > 0 ? lines.slice(Math.max(0, lines.length - 3)) : [];
+            const more_count = Math.max(0, lines.length - tail_lines.length);
+            const has_output_more = more_count > 0;
+            const output_preview_tail = tail_lines.join("\n");
+            const output_preview_more_label = has_output_more
+                ? `+${more_count} more line${more_count === 1 ? "" : "s"}`
+                : "";
 
             return {
                 type: type !== "" ? type : "subagent",
@@ -522,6 +536,9 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
                 status_label: label,
                 has_output_preview,
                 output_preview,
+                has_output_more,
+                output_preview_tail,
+                output_preview_more_label,
                 meta_line: meta_parts.join(" · "),
                 agentURL: agent.agentURL ?? "",
                 error: agent.error ?? "",
@@ -1412,8 +1429,8 @@ export function activate(opts: {
             void copy_text(task.command);
         });
 
-        // Scroll subagent outputs to the bottom so "streamy" previews show the latest lines.
-        opts.$elem.find("pre.sp-ai-subagent-output").each(function () {
+        // Scroll expanded output blocks to the bottom by default.
+        opts.$elem.find("pre.sp-ai-subagent-output-full").each(function () {
             try {
                 (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
             } catch {
