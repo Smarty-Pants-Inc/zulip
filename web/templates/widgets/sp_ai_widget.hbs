@@ -128,6 +128,15 @@
             </div>
         {{/if}}
 
+        {{#if has_tool_stream_preview}}
+            <div class="sp-ai-tool-stream-preview">
+                <div class="sp-ai-tool-section-header">
+                    <h4 class="sp-ai-tool-section-title">{{tool_stream_preview_title}}</h4>
+                </div>
+                <pre class="sp-ai-tool-stream-preview-text">{{tool_stream_preview_text}}</pre>
+            </div>
+        {{/if}}
+
         {{#if has_background_tasks}}
             <details class="sp-ai-section sp-ai-background-tasks-section" open>
                 <summary>

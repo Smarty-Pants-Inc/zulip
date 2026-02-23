@@ -1263,6 +1263,28 @@ export function activate(opts: {
             ? blocks_for_template.filter((b) => b.index !== args_block_index)
             : blocks_for_template;
 
+        // Foreground tool stdout/stderr: render as a compact, scrolling preview area
+        // rather than a separate nested block section.
+        const streamBlocks =
+            state.kind === "tool"
+                ? blocks_without_args.filter((b) => b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr"))
+                : [];
+        const has_tool_stream_preview = streamBlocks.length > 0;
+        const tool_stream_preview_title = streamBlocks.some((b) => b.channel === "stderr")
+            ? "Stdout / Stderr"
+            : "Stdout";
+        const tool_stream_preview_text = streamBlocks
+            .map((b) => {
+                const t = String(b.text || "");
+                if (streamBlocks.length === 1) return t;
+                return `${b.channel}: ${t}`;
+            })
+            .join("\n");
+
+        const blocks_without_args_or_streams = has_tool_stream_preview
+            ? blocks_without_args.filter((b) => !(b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr")))
+            : blocks_without_args;
+
         const html = render_widgets_sp_ai_widget({
             ...state,
             kind_label: kind_label(state.kind),
@@ -1306,8 +1328,11 @@ export function activate(opts: {
             args_block_title,
             args_block_language,
             args_block_text,
-            has_blocks: blocks_without_args.length > 0,
-            blocks: blocks_without_args,
+            has_tool_stream_preview,
+            tool_stream_preview_title,
+            tool_stream_preview_text,
+            has_blocks: blocks_without_args_or_streams.length > 0,
+            blocks: blocks_without_args_or_streams,
             show_abort: state.status === "running",
             show_retry: state.status !== "running",
             show_approve: state.kind === "ask",
@@ -1389,6 +1414,14 @@ export function activate(opts: {
 
         // Scroll subagent outputs to the bottom so "streamy" previews show the latest lines.
         opts.$elem.find("pre.sp-ai-subagent-output").each(function () {
+            try {
+                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
+            } catch {
+                // Ignore scroll failures; output preview is best-effort.
+            }
+        });
+
+        opts.$elem.find("pre.sp-ai-tool-stream-preview-text").each(function () {
             try {
                 (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
             } catch {
