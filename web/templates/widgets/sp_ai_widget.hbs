@@ -366,7 +366,9 @@
     <div class="sp-ai-header">
         <div class="sp-ai-title-wrap">
             <div class="sp-ai-title">{{title}}</div>
-            <div class="sp-ai-kind-badge">{{kind_label}}</div>
+            {{#if show_kind_badge}}
+                <div class="sp-ai-kind-badge">{{kind_label}}</div>
+            {{/if}}
             {{#if show_status_pill}}
                 <div class="sp-ai-status sp-ai-status-{{status}}">{{status_label}}</div>
             {{/if}}
@@ -385,24 +387,14 @@
     {{/if}}
 
     {{#if has_subagent_groups}}
-        <details class="sp-ai-section sp-ai-subagent-section" open>
-            <summary>
-                <span>{{subagent_section_title}}</span>
-            </summary>
-
+        {{#if is_subagent_group_card}}
             <div class="sp-ai-subagent-groups">
                 {{#each subagent_groups}}
-                    {{#if title}}
-                        <div class="sp-ai-subagent-group-title">{{title}}</div>
-                    {{/if}}
-
                     {{#if has_agents}}
                         <ul class="sp-ai-subagent-list">
                             {{#each agents}}
                                 <li class="sp-ai-subagent">
-                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">
-                                        {{status_label}}
-                                    </span>
+                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
 
                                     <div class="sp-ai-subagent-main">
                                         <div class="sp-ai-subagent-head">
@@ -420,12 +412,7 @@
                                     </div>
 
                                     {{#if agentURL}}
-                                        <a
-                                            class="sp-ai-subagent-link"
-                                            href="{{agentURL}}"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            >Open</a
+                                        <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
                                     {{/if}}
                                 </li>
                             {{/each}}
@@ -437,7 +424,54 @@
                     {{/if}}
                 {{/each}}
             </div>
-        </details>
+        {{else}}
+            <details class="sp-ai-section sp-ai-subagent-section" open>
+                <summary>
+                    <span>{{subagent_section_title}}</span>
+                </summary>
+
+                <div class="sp-ai-subagent-groups">
+                    {{#each subagent_groups}}
+                        {{#if title}}
+                            <div class="sp-ai-subagent-group-title">{{title}}</div>
+                        {{/if}}
+
+                        {{#if has_agents}}
+                            <ul class="sp-ai-subagent-list">
+                                {{#each agents}}
+                                    <li class="sp-ai-subagent">
+                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
+
+                                        <div class="sp-ai-subagent-main">
+                                            <div class="sp-ai-subagent-head">
+                                                <span class="sp-ai-subagent-type">{{type}}</span>
+                                                <span class="sp-ai-subagent-desc">{{description}}</span>
+                                            </div>
+
+                                            {{#if meta_line}}
+                                                <div class="sp-ai-subagent-meta">{{meta_line}}</div>
+                                            {{/if}}
+
+                                            {{#if error}}
+                                                <div class="sp-ai-subagent-error">{{error}}</div>
+                                            {{/if}}
+                                        </div>
+
+                                        {{#if agentURL}}
+                                            <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+                                        {{/if}}
+                                    </li>
+                                {{/each}}
+                            </ul>
+                        {{else}}
+                            {{#if fallback_text}}
+                                <pre class="sp-ai-pre">{{fallback_text}}</pre>
+                            {{/if}}
+                        {{/if}}
+                    {{/each}}
+                </div>
+            </details>
+        {{/if}}
     {{/if}}
 
     {{#if has_background_tasks}}

@@ -445,6 +445,18 @@ function default_title_for_turn_kind(kind: string): string {
     return "Agent output";
 }
 
+function present_tool_title(value: string): string {
+    const s = String(value || "").trim();
+    if (s === "") {
+        return "Tool";
+    }
+
+    // Keep UI labels readable; the fully-qualified tool name is still available
+    // via the Tool metadata row (when present) and in the raw widget data.
+    const parts = s.split(".").filter((p) => p !== "");
+    return parts.length > 0 ? parts[parts.length - 1]! : s;
+}
+
 function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
     turn_kind: string;
     turn_kind_label: string;
@@ -522,6 +534,11 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
         subagent_groups.length === 1 && subagent_groups[0]?.title.trim() !== ""
             ? subagent_groups[0].title
             : "Subagents";
+
+    // Avoid repeating the same title in the section header and group title.
+    if (subagent_groups.length === 1) {
+        subagent_groups[0]!.title = "";
+    }
 
     return {
         turn_kind,
@@ -609,6 +626,11 @@ function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
         background_task_groups.length === 1 && background_task_groups[0]?.title.trim() !== ""
             ? background_task_groups[0].title
             : "Background tasks";
+
+    // Avoid repeating the same title in the section header and group title.
+    if (background_task_groups.length === 1) {
+        background_task_groups[0]!.title = "";
+    }
 
     return {
         background_tasks_section_title,
@@ -1001,6 +1023,22 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         skip_block_indexes: background_skip_block_indexes,
     } = normalize_background_tasks(extra_data);
 
+    // When background tasks are present, prefer showing their per-task output
+    // previews over also rendering tool stdout/stderr as separate blocks.
+    const stream_skip_block_indexes = new Set<number>();
+    if (background_task_groups.length > 0) {
+        const blocks = Array.isArray(extra_data.turn?.blocks) ? extra_data.turn.blocks : [];
+        for (const [index, block] of blocks.entries()) {
+            if (!block || typeof block !== "object" || Array.isArray(block)) {
+                continue;
+            }
+            const rec = block as Record<string, unknown>;
+            if (rec.kind === "stream") {
+                stream_skip_block_indexes.add(index);
+            }
+        }
+    }
+
     const {
         plan_section_title,
         plan_groups,
@@ -1016,6 +1054,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
     const skip_block_indexes = new Set<number>([
         ...subagent_skip_block_indexes,
         ...background_skip_block_indexes,
+        ...stream_skip_block_indexes,
         ...plan_skip_block_indexes,
         ...todo_skip_block_indexes,
     ]);
@@ -1207,6 +1246,8 @@ export function activate(opts: {
             status_label: status_label(state.status),
             show_status_pill: state.kind !== "error",
             tool_status_label: tool_status_label(state.status),
+            show_kind_badge: state.kind !== "subagent_group",
+            is_subagent_group_card: state.kind === "subagent_group",
             is_thinking_kind: state.kind === "thinking",
             reasoning_label: state.status === "running" ? "Thinking\u2026" : "Thought for a few seconds",
             reasoning_text: state.output || state.caption || "",
@@ -1215,7 +1256,7 @@ export function activate(opts: {
             reasoning_expanded: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "true" : "false",
             reasoning_content_hidden: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "false" : "true",
             is_tool_kind: state.kind === "tool",
-            tool_title: state.tool || state.title,
+            tool_title: present_tool_title(state.tool || state.title),
             tool_open:
                 state.kind === "tool" &&
                 (state.status === "pending" ||
