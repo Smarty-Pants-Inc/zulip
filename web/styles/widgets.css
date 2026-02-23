@@ -447,13 +447,13 @@
     }
 
     .sp-ai-subagent-output {
-        margin: 6px 0 0;
-        padding: 6px 10px;
+        margin: 4px 0 0;
+        padding: 0 0 0 10px;
         max-height: 11em;
         overflow: auto;
-        background-color: var(--color-background-widget-input);
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        border-radius: 8px;
+        background-color: transparent;
+        border-left: 2px solid color-mix(in srgb, var(--color-border-dropdown-widget-button) 70%, transparent);
+        border-radius: 0;
         font-size: 0.8571em; /* 12px at 14px/em */
         line-height: 1.35;
         white-space: pre-wrap;
@@ -956,6 +956,10 @@
         margin-top: 4px;
     }
 
+    .sp-ai-panel-section-first {
+        margin-top: 0;
+    }
+
     /* Shared code/markdown presentation (used by both tool + non-tool turns). */
     .sp-ai-tool-section-header {
         display: flex;
@@ -1387,7 +1391,7 @@
 
     .sp-ai-tool-content {
         /* Reduce dead space under the divider. */
-        padding: 8px 14px 12px;
+        padding: 4px 14px 12px;
         border-top: 1px solid var(--color-border-dropdown-widget-button);
     }
 
@@ -1430,7 +1434,7 @@
     .sp-ai-tool-stream-preview-text {
         margin-top: 4px;
         padding: 8px 10px;
-        height: calc(1.35em * 3 + 10px);
+        height: calc(1.35em * 3 + 8px);
         overflow: auto;
         border-radius: 8px;
         border: 1px solid var(--color-border-dropdown-widget-button);
