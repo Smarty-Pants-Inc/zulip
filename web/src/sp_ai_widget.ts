@@ -289,6 +289,11 @@ function normalize_plan_blocks(extra_data: SpAiWidgetExtraData): {
     const plan_section_title =
         plan_groups.length === 1 && plan_groups[0]?.title.trim() !== "" ? plan_groups[0].title : "Plan";
 
+    // Avoid repeating the same title in the section header and group title.
+    if (plan_groups.length === 1) {
+        plan_groups[0]!.title = "";
+    }
+
     return {plan_section_title, plan_groups, skip_block_indexes};
 }
 
@@ -368,6 +373,11 @@ function normalize_todo_blocks(extra_data: SpAiWidgetExtraData): {
 
     const todo_section_title =
         todo_groups.length === 1 && todo_groups[0]?.title.trim() !== "" ? todo_groups[0].title : "Todo";
+
+    // Avoid repeating the same title in the section header and group title.
+    if (todo_groups.length === 1) {
+        todo_groups[0]!.title = "";
+    }
 
     return {todo_section_title, todo_groups, skip_block_indexes};
 }

@@ -463,13 +463,12 @@
                                         {{/if}}
                                     </div>
 
-                                    {{#if agentURL}}
-                                        <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
-                                    {{else}}
-                                        <span class="sp-ai-subagent-link-spacer"></span>
-                                    {{/if}}
-
-                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
+                                    <div class="sp-ai-subagent-right">
+                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
+                                        {{#if agentURL}}
+                                            <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+                                        {{/if}}
+                                    </div>
                                 </li>
                             {{/each}}
                         </ul>
@@ -527,13 +526,12 @@
                                             {{/if}}
                                         </div>
 
-                                        {{#if agentURL}}
-                                            <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
-                                        {{else}}
-                                            <span class="sp-ai-subagent-link-spacer"></span>
-                                        {{/if}}
-
-                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
+                                        <div class="sp-ai-subagent-right">
+                                            <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
+                                            {{#if agentURL}}
+                                                <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+                                            {{/if}}
+                                        </div>
                                     </li>
                                 {{/each}}
                             </ul>
@@ -720,7 +718,9 @@
                         <div class="sp-ai-block-meta">
                             <span class="sp-ai-block-badge">{{label}}</span>
                             {{#if title}}
-                                <span class="sp-ai-block-title">{{title}}</span>
+                                {{#unless (eq title label)}}
+                                    <span class="sp-ai-block-title">{{title}}</span>
+                                {{/unless}}
                             {{/if}}
                         </div>
 

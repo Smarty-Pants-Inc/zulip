@@ -456,7 +456,7 @@
 
     .sp-ai-output-toggle-actions {
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
     }
 
     .sp-ai-output-toggle-pre {
@@ -657,7 +657,7 @@
 
     .sp-ai-subagent {
         display: grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: 1fr auto;
         gap: 10px;
         align-items: start;
         padding: 8px;
@@ -666,10 +666,13 @@
         background-color: var(--color-background-widget-input);
     }
 
-    .sp-ai-subagent-link-spacer {
-        display: block;
-        width: 0;
-        height: 0;
+    .sp-ai-subagent-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 6px;
+        height: 100%;
     }
 
     .sp-ai-subagent-status {
@@ -735,7 +738,7 @@
     }
 
     .sp-ai-subagent-link {
-        align-self: start;
+        align-self: flex-end;
         border: 1px solid var(--color-border-dropdown-widget-button);
         border-radius: 6px;
         padding: 2px 8px;
