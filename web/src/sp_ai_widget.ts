@@ -117,6 +117,9 @@ type BackgroundTaskTemplate = {
     meta_line: string;
     has_output_preview: boolean;
     output_preview: string;
+    has_output_more: boolean;
+    output_preview_tail: string;
+    output_preview_more_label: string;
     error: string;
 };
 
@@ -604,7 +607,18 @@ function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
                 const description = typeof rec.description === "string" ? rec.description : "";
                 const error = typeof rec.error === "string" ? rec.error : "";
                 const output_preview = typeof rec.outputPreview === "string" ? rec.outputPreview : "";
-                const has_output_preview = output_preview !== "";
+                const output_preview_trimmed = output_preview.trim();
+                const has_output_preview = output_preview_trimmed !== "";
+                const lines = has_output_preview
+                    ? output_preview_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
+                    : [];
+                const tail_lines = lines.length > 0 ? lines.slice(Math.max(0, lines.length - 3)) : [];
+                const more_count = Math.max(0, lines.length - tail_lines.length);
+                const has_output_more = more_count > 0;
+                const output_preview_tail = tail_lines.join("\n");
+                const output_preview_more_label = has_output_more
+                    ? `+${more_count} more line${more_count === 1 ? "" : "s"}`
+                    : "";
 
                 const {status, label} = normalize_background_task_status(typeof rec.status === "string" ? rec.status : "");
 
@@ -628,6 +642,9 @@ function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
                     meta_line: meta_parts.join(" · "),
                     has_output_preview,
                     output_preview,
+                    has_output_more,
+                    output_preview_tail,
+                    output_preview_more_label,
                     error,
                 };
             })
@@ -1298,6 +1315,20 @@ export function activate(opts: {
             })
             .join("\n");
 
+        const tool_stream_preview_text_trimmed = tool_stream_preview_text.trim();
+        const tool_stream_lines = tool_stream_preview_text_trimmed
+            ? tool_stream_preview_text_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
+            : [];
+        const tool_stream_tail_lines = tool_stream_lines.length > 0
+            ? tool_stream_lines.slice(Math.max(0, tool_stream_lines.length - 3))
+            : [];
+        const tool_stream_tail = tool_stream_tail_lines.join("\n");
+        const tool_stream_more_count = Math.max(0, tool_stream_lines.length - tool_stream_tail_lines.length);
+        const has_tool_stream_more = tool_stream_more_count > 0;
+        const tool_stream_more_label = has_tool_stream_more
+            ? `+${tool_stream_more_count} more line${tool_stream_more_count === 1 ? "" : "s"}`
+            : "";
+
         const blocks_without_args_or_streams = has_tool_stream_preview
             ? blocks_without_args.filter((b) => !(b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr")))
             : blocks_without_args;
@@ -1347,7 +1378,10 @@ export function activate(opts: {
             args_block_text,
             has_tool_stream_preview,
             tool_stream_preview_title,
-            tool_stream_preview_text,
+            tool_stream_preview_text: tool_stream_preview_text_trimmed,
+            tool_stream_preview_tail: tool_stream_tail,
+            has_tool_stream_more,
+            tool_stream_more_label,
             has_blocks: blocks_without_args_or_streams.length > 0,
             blocks: blocks_without_args_or_streams,
             show_abort: state.status === "running",
@@ -1429,8 +1463,52 @@ export function activate(opts: {
             void copy_text(task.command);
         });
 
+        // Wire output-toggle payload swap (collapsed tail vs full scrollable).
+        // We keep a single <pre> in the layout to avoid adding vertical whitespace.
+        const syncOutputToggle = (root: HTMLElement): void => {
+            const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
+            if (!pre) return;
+
+            const tail = root.querySelector("pre.sp-ai-output-toggle-data-tail")?.textContent ?? "";
+            const full = root.querySelector("pre.sp-ai-output-toggle-data-full")?.textContent ?? "";
+            const expanded = root.classList.contains("is-expanded");
+            pre.textContent = expanded ? full : tail;
+        };
+
+        opts.$elem.find("[data-sp-ai-output-toggle]").each(function () {
+            try {
+                syncOutputToggle(this as HTMLElement);
+            } catch {
+                // ignore
+            }
+        });
+
+        // Expand/collapse compact output previews (subagents, background tasks, tool stdout).
+        opts.$elem.find("button[data-sp-ai-toggle-output]").on("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = e.currentTarget as HTMLElement;
+            const root = btn.closest("[data-sp-ai-output-toggle]") as HTMLElement | null;
+            if (!root) return;
+            root.classList.toggle("is-expanded");
+
+            syncOutputToggle(root);
+
+            // Scroll expanded output to bottom by default.
+            if (root.classList.contains("is-expanded")) {
+                const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
+                if (pre) {
+                    try {
+                        pre.scrollTop = pre.scrollHeight;
+                    } catch {
+                        // ignore
+                    }
+                }
+            }
+        });
+
         // Scroll expanded output blocks to the bottom by default.
-        opts.$elem.find("pre.sp-ai-subagent-output-full").each(function () {
+        opts.$elem.find(".sp-ai-output-toggle.is-expanded pre.sp-ai-output-toggle-pre").each(function () {
             try {
                 (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
             } catch {
@@ -1438,7 +1516,12 @@ export function activate(opts: {
             }
         });
 
-        opts.$elem.find("pre.sp-ai-tool-stream-preview-text").each(function () {
+        opts.$elem.find("pre.sp-ai-output-toggle-pre").each(function () {
+            // Only scroll pre elements that are already in the expanded state.
+            const root = (this as HTMLElement).closest(".sp-ai-output-toggle");
+            if (!root || !root.classList.contains("is-expanded")) {
+                return;
+            }
             try {
                 (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
             } catch {

@@ -133,7 +133,17 @@
                 <div class="sp-ai-tool-section-header">
                     <h4 class="sp-ai-tool-section-title">{{tool_stream_preview_title}}</h4>
                 </div>
-                <pre class="sp-ai-tool-stream-preview-text">{{tool_stream_preview_text}}</pre>
+                <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
+                    <pre class="sp-ai-output-toggle-pre">{{tool_stream_preview_tail}}</pre>
+                    {{#if has_tool_stream_more}}
+                        <button class="sp-ai-output-toggle-btn" type="button" data-sp-ai-toggle-output>
+                            <span class="sp-ai-output-toggle-more-label">{{tool_stream_more_label}}</span>
+                            <span class="sp-ai-output-toggle-less-label">Less</span>
+                        </button>
+                        <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-tail" hidden>{{tool_stream_preview_tail}}</pre>
+                        <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-full" hidden>{{tool_stream_preview_text}}</pre>
+                    {{/if}}
+                </div>
             </div>
         {{/if}}
 
@@ -420,8 +430,6 @@
                         <ul class="sp-ai-subagent-list">
                             {{#each agents}}
                                 <li class="sp-ai-subagent">
-                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
-
                                     <div class="sp-ai-subagent-main">
                                         <div class="sp-ai-subagent-head">
                                             <span class="sp-ai-subagent-type">{{type}}</span>
@@ -429,17 +437,17 @@
                                         </div>
 
                                         {{#if has_output_preview}}
-                                            {{#if has_output_more}}
-                                                <details class="sp-ai-subagent-output-details">
-                                                    <summary class="sp-ai-subagent-output-summary">
-                                                        <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
-                                                        <span class="sp-ai-subagent-output-more">{{output_preview_more_label}}</span>
-                                                    </summary>
-                                                    <pre class="sp-ai-subagent-output-full">{{output_preview}}</pre>
-                                                </details>
-                                            {{else}}
-                                                <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
-                                            {{/if}}
+                                            <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
+                                                <pre class="sp-ai-output-toggle-pre">{{output_preview_tail}}</pre>
+                                                {{#if has_output_more}}
+                                                    <button class="sp-ai-output-toggle-btn" type="button" data-sp-ai-toggle-output>
+                                                        <span class="sp-ai-output-toggle-more-label">{{output_preview_more_label}}</span>
+                                                        <span class="sp-ai-output-toggle-less-label">Less</span>
+                                                    </button>
+                                                    <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-tail" hidden>{{output_preview_tail}}</pre>
+                                                    <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-full" hidden>{{output_preview}}</pre>
+                                                {{/if}}
+                                            </div>
                                         {{/if}}
 
                                         {{#if meta_line}}
@@ -453,7 +461,11 @@
 
                                     {{#if agentURL}}
                                         <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+                                    {{else}}
+                                        <span class="sp-ai-subagent-link-spacer"></span>
                                     {{/if}}
+
+                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
                                 </li>
                             {{/each}}
                         </ul>
@@ -480,8 +492,6 @@
                             <ul class="sp-ai-subagent-list">
                                 {{#each agents}}
                                     <li class="sp-ai-subagent">
-                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
-
                                         <div class="sp-ai-subagent-main">
                                             <div class="sp-ai-subagent-head">
                                                 <span class="sp-ai-subagent-type">{{type}}</span>
@@ -489,17 +499,17 @@
                                             </div>
 
                                             {{#if has_output_preview}}
-                                                {{#if has_output_more}}
-                                                    <details class="sp-ai-subagent-output-details">
-                                                        <summary class="sp-ai-subagent-output-summary">
-                                                            <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
-                                                            <span class="sp-ai-subagent-output-more">{{output_preview_more_label}}</span>
-                                                        </summary>
-                                                        <pre class="sp-ai-subagent-output-full">{{output_preview}}</pre>
-                                                    </details>
-                                                {{else}}
-                                                    <pre class="sp-ai-subagent-output-preview">{{output_preview_tail}}</pre>
-                                                {{/if}}
+                                                <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
+                                                    <pre class="sp-ai-output-toggle-pre">{{output_preview_tail}}</pre>
+                                                    {{#if has_output_more}}
+                                                        <button class="sp-ai-output-toggle-btn" type="button" data-sp-ai-toggle-output>
+                                                            <span class="sp-ai-output-toggle-more-label">{{output_preview_more_label}}</span>
+                                                            <span class="sp-ai-output-toggle-less-label">Less</span>
+                                                        </button>
+                                                        <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-tail" hidden>{{output_preview_tail}}</pre>
+                                                        <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-full" hidden>{{output_preview}}</pre>
+                                                    {{/if}}
+                                                </div>
                                             {{/if}}
 
                                             {{#if meta_line}}
@@ -513,7 +523,11 @@
 
                                         {{#if agentURL}}
                                             <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
+                                        {{else}}
+                                            <span class="sp-ai-subagent-link-spacer"></span>
                                         {{/if}}
+
+                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
                                     </li>
                                 {{/each}}
                             </ul>
@@ -543,8 +557,6 @@
                     <ul class="sp-ai-background-task-list">
                         {{#each tasks}}
                             <li class="sp-ai-background-task">
-                                <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
-
                                 <div class="sp-ai-background-task-main">
                                     {{#if command}}
                                         <div class="sp-ai-background-task-command">{{command}}</div>
@@ -563,7 +575,17 @@
                                     {{/if}}
 
                                     {{#if has_output_preview}}
-                                        <pre class="sp-ai-pre sp-ai-background-task-output">{{output_preview}}</pre>
+                                        <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
+                                            <pre class="sp-ai-output-toggle-pre">{{output_preview_tail}}</pre>
+                                            {{#if has_output_more}}
+                                                <button class="sp-ai-output-toggle-btn" type="button" data-sp-ai-toggle-output>
+                                                    <span class="sp-ai-output-toggle-more-label">{{output_preview_more_label}}</span>
+                                                    <span class="sp-ai-output-toggle-less-label">Less</span>
+                                                </button>
+                                                <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-tail" hidden>{{output_preview_tail}}</pre>
+                                                <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-full" hidden>{{output_preview}}</pre>
+                                            {{/if}}
+                                        </div>
                                     {{/if}}
                                 </div>
 
@@ -578,6 +600,8 @@
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                     </svg>
                                 </button>
+
+                                <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
                             </li>
                         {{/each}}
                     </ul>

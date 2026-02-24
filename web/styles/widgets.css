@@ -7,6 +7,84 @@
         padding: 3px;
     }
 
+    .sp-ai-background-task-status::before {
+        display: none;
+    }
+
+    /* Right-aligned pills: remove the left-dot ornament so left edges line up. */
+    .sp-ai-subagent-status::before {
+        display: none;
+    }
+
+    /* Generic "tail + expand" output toggle used by subagents, background tasks, and tool stdout. */
+    .sp-ai-output-toggle {
+        margin-top: 4px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: start;
+    }
+
+    .sp-ai-output-toggle-pre {
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+        border: none;
+        font-family: var(--monospace-font);
+        font-size: 0.8571em; /* 12px at 14px/em */
+        line-height: 1.35;
+        white-space: pre-wrap;
+        opacity: 0.9;
+        min-width: 0;
+        /* collapsed: 3 lines */
+        height: calc(1.35em * 3);
+        overflow: hidden;
+    }
+
+    .sp-ai-output-toggle-btn {
+        flex: 0 0 auto;
+        align-self: start;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 999px;
+        padding: 1px 8px;
+        background-color: color-mix(in srgb, var(--color-background-widget-button) 55%, transparent);
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        cursor: pointer;
+        opacity: 0.85;
+
+        &:hover {
+            opacity: 1;
+            filter: brightness(0.98);
+        }
+    }
+
+    .sp-ai-output-toggle-less-label {
+        display: none;
+    }
+
+    .sp-ai-output-toggle-data {
+        display: none;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-more-label {
+        display: none;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-less-label {
+        display: inline;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-pre {
+        height: calc(1.35em * 6 + 12px);
+        overflow: auto;
+        padding: 8px 10px;
+        background-color: var(--color-background-widget-input);
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 8px;
+        opacity: 1;
+    }
+
     & li {
         padding: 2px;
         list-style: none;
@@ -446,58 +524,7 @@
         }
     }
 
-    .sp-ai-subagent-output-details {
-        margin-top: 4px;
-    }
-
-    .sp-ai-subagent-output-summary {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        cursor: pointer;
-    }
-
-    .sp-ai-subagent-output-summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .sp-ai-subagent-output-preview {
-        margin: 0;
-        padding: 0 0 0 10px;
-        background-color: transparent;
-        border-left: 2px solid color-mix(in srgb, var(--color-border-dropdown-widget-button) 70%, transparent);
-        border-radius: 0;
-        font-size: 0.8571em; /* 12px at 14px/em */
-        line-height: 1.35;
-        white-space: pre-wrap;
-        opacity: 0.9;
-    }
-
-    .sp-ai-subagent-output-more {
-        align-self: flex-start;
-        margin-left: 10px;
-        font-size: 0.7857em; /* 11px at 14px/em */
-        font-weight: 700;
-        padding: 1px 6px;
-        border-radius: 999px;
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        background-color: color-mix(in srgb, var(--color-background-widget-button) 55%, transparent);
-        opacity: 0.8;
-    }
-
-    .sp-ai-subagent-output-full {
-        margin: 6px 0 0;
-        padding: 8px 10px;
-        max-height: 180px;
-        overflow: auto;
-        background-color: var(--color-background-widget-input);
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        border-radius: 8px;
-        font-size: 0.8571em; /* 12px at 14px/em */
-        line-height: 1.35;
-        white-space: pre-wrap;
-    }
+    /* Legacy per-subagent output styles removed; use .sp-ai-output-toggle instead. */
 
     .sp-ai-btn-approve {
         border-color: color-mix(in srgb, #22c55e 35%, var(--color-border-dropdown-widget-button));
@@ -636,13 +663,19 @@
 
     .sp-ai-subagent {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 1fr auto auto;
         gap: 10px;
         align-items: start;
         padding: 8px;
         border-radius: 8px;
         border: 1px solid var(--color-border-dropdown-widget-button);
         background-color: var(--color-background-widget-input);
+    }
+
+    .sp-ai-subagent-link-spacer {
+        display: block;
+        width: 0;
+        height: 0;
     }
 
     .sp-ai-subagent-status {
@@ -758,7 +791,7 @@
 
     .sp-ai-background-task {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 1fr auto auto;
         gap: 10px;
         align-items: start;
         padding: 8px;
@@ -1431,7 +1464,7 @@
 
     .sp-ai-tool-content {
         /* Reduce dead space under the divider. */
-        padding: 3px 14px 12px;
+        padding: 2px 14px 12px;
         border-top: 1px solid var(--color-border-dropdown-widget-button);
     }
 
@@ -1471,19 +1504,7 @@
         margin-top: 6px;
     }
 
-    .sp-ai-tool-stream-preview-text {
-        margin-top: 4px;
-        padding: 8px 10px;
-        height: calc(1.35em * 3 + 8px);
-        overflow: auto;
-        border-radius: 8px;
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        background-color: var(--color-background-widget-input);
-        font-family: var(--monospace-font);
-        font-size: 0.8571em; /* 12px at 14px/em */
-        line-height: 1.35;
-        white-space: pre-wrap;
-    }
+    /* Legacy tool stream preview removed; use .sp-ai-output-toggle instead. */
 
     .sp-ai-tool-code {
         margin: 0;
