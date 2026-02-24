@@ -784,6 +784,10 @@
         background-color: var(--color-background-widget-input);
     }
 
+    .sp-ai-section summary h4.sp-ai-tool-section-title {
+        margin: 0;
+    }
+
     .sp-ai-background-task-status {
         flex: 0 0 auto;
         font-size: 0.7857em; /* 11px at 14px/em */
@@ -849,9 +853,7 @@
         overflow-wrap: anywhere;
     }
 
-    .sp-ai-background-task-output {
-        max-height: 180px;
-    }
+    /* Legacy background task output (pre-toggle) removed; use .sp-ai-output-toggle instead. */
 
     .sp-ai-plan-groups {
         margin-top: 6px;

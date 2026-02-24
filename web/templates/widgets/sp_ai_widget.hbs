@@ -152,7 +152,7 @@
         {{#if has_background_tasks}}
             <details class="sp-ai-section sp-ai-background-tasks-section" open>
                 <summary>
-                    <span>{{background_tasks_section_title}}</span>
+                    <h4 class="sp-ai-tool-section-title">{{background_tasks_section_title}}</h4>
                 </summary>
 
                 <div class="sp-ai-background-task-groups">
@@ -164,8 +164,6 @@
                         <ul class="sp-ai-background-task-list">
                             {{#each tasks}}
                                 <li class="sp-ai-background-task">
-                                    <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
-
                                     <div class="sp-ai-background-task-main">
                                         {{#if command}}
                                             <div class="sp-ai-background-task-command">{{command}}</div>
@@ -184,7 +182,19 @@
                                         {{/if}}
 
                                         {{#if has_output_preview}}
-                                            <pre class="sp-ai-pre sp-ai-background-task-output">{{output_preview}}</pre>
+                                            <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
+                                                <pre class="sp-ai-output-toggle-pre">{{output_preview_tail}}</pre>
+                                                {{#if has_output_more}}
+                                                    <div class="sp-ai-output-toggle-actions">
+                                                        <button class="sp-ai-output-toggle-btn" type="button" data-sp-ai-toggle-output>
+                                                            <span class="sp-ai-output-toggle-more-label">{{output_preview_more_label}}</span>
+                                                            <span class="sp-ai-output-toggle-less-label">Less</span>
+                                                        </button>
+                                                    </div>
+                                                    <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-tail" hidden>{{output_preview_tail}}</pre>
+                                                    <pre class="sp-ai-output-toggle-data sp-ai-output-toggle-data-full" hidden>{{output_preview}}</pre>
+                                                {{/if}}
+                                            </div>
                                         {{/if}}
                                     </div>
 
@@ -199,6 +209,8 @@
                                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                         </svg>
                                     </button>
+
+                                    <span class="sp-ai-background-task-status sp-ai-background-task-status-{{status}}">{{status_label}}</span>
                                 </li>
                             {{/each}}
                         </ul>
@@ -210,7 +222,7 @@
         {{#if has_plan_blocks}}
             <details class="sp-ai-section sp-ai-plan-section" open>
                 <summary>
-                    <span>{{plan_section_title}}</span>
+                    <h4 class="sp-ai-tool-section-title">{{plan_section_title}}</h4>
                 </summary>
 
                 <div class="sp-ai-plan-groups">
@@ -235,7 +247,7 @@
         {{#if has_todo_blocks}}
             <details class="sp-ai-section sp-ai-todo-section" open>
                 <summary>
-                    <span>{{todo_section_title}}</span>
+                    <h4 class="sp-ai-tool-section-title">{{todo_section_title}}</h4>
                 </summary>
 
                 <div class="sp-ai-todo-groups">
@@ -549,7 +561,7 @@
     {{#if has_background_tasks}}
         <details class="sp-ai-section sp-ai-background-tasks-section" open>
             <summary>
-                <span>{{background_tasks_section_title}}</span>
+                <h4 class="sp-ai-tool-section-title">{{background_tasks_section_title}}</h4>
             </summary>
 
             <div class="sp-ai-background-task-groups">
@@ -619,7 +631,7 @@
     {{#if has_plan_blocks}}
         <details class="sp-ai-section sp-ai-plan-section" open>
             <summary>
-                <span>{{plan_section_title}}</span>
+                <h4 class="sp-ai-tool-section-title">{{plan_section_title}}</h4>
             </summary>
 
             <div class="sp-ai-plan-groups">
@@ -644,7 +656,7 @@
     {{#if has_todo_blocks}}
         <details class="sp-ai-section sp-ai-todo-section" open>
             <summary>
-                <span>{{todo_section_title}}</span>
+                <h4 class="sp-ai-tool-section-title">{{todo_section_title}}</h4>
             </summary>
 
             <div class="sp-ai-todo-groups">
