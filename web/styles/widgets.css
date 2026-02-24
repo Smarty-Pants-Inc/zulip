@@ -449,10 +449,14 @@
     /* Generic "tail + expand" output toggle used by subagents, background tasks, and tool stdout. */
     .sp-ai-output-toggle {
         margin-top: 4px;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-        align-items: start;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .sp-ai-output-toggle-actions {
+        display: flex;
+        justify-content: flex-end;
     }
 
     .sp-ai-output-toggle-pre {
@@ -473,7 +477,6 @@
 
     .sp-ai-output-toggle-btn {
         flex: 0 0 auto;
-        align-self: start;
         border: 1px solid var(--color-border-dropdown-widget-button);
         border-radius: 999px;
         padding: 1px 8px;
