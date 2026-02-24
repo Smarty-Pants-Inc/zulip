@@ -7,84 +7,6 @@
         padding: 3px;
     }
 
-    .sp-ai-background-task-status::before {
-        display: none;
-    }
-
-    /* Right-aligned pills: remove the left-dot ornament so left edges line up. */
-    .sp-ai-subagent-status::before {
-        display: none;
-    }
-
-    /* Generic "tail + expand" output toggle used by subagents, background tasks, and tool stdout. */
-    .sp-ai-output-toggle {
-        margin-top: 4px;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-        align-items: start;
-    }
-
-    .sp-ai-output-toggle-pre {
-        margin: 0;
-        padding: 0;
-        background-color: transparent;
-        border: none;
-        font-family: var(--monospace-font);
-        font-size: 0.8571em; /* 12px at 14px/em */
-        line-height: 1.35;
-        white-space: pre-wrap;
-        opacity: 0.9;
-        min-width: 0;
-        /* collapsed: 3 lines */
-        height: calc(1.35em * 3);
-        overflow: hidden;
-    }
-
-    .sp-ai-output-toggle-btn {
-        flex: 0 0 auto;
-        align-self: start;
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        border-radius: 999px;
-        padding: 1px 8px;
-        background-color: color-mix(in srgb, var(--color-background-widget-button) 55%, transparent);
-        font-size: 0.7857em; /* 11px at 14px/em */
-        font-weight: 700;
-        cursor: pointer;
-        opacity: 0.85;
-
-        &:hover {
-            opacity: 1;
-            filter: brightness(0.98);
-        }
-    }
-
-    .sp-ai-output-toggle-less-label {
-        display: none;
-    }
-
-    .sp-ai-output-toggle-data {
-        display: none;
-    }
-
-    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-more-label {
-        display: none;
-    }
-
-    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-less-label {
-        display: inline;
-    }
-
-    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-pre {
-        height: calc(1.35em * 6 + 12px);
-        overflow: auto;
-        padding: 8px 10px;
-        background-color: var(--color-background-widget-input);
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        border-radius: 8px;
-        opacity: 1;
-    }
-
     & li {
         padding: 2px;
         list-style: none;
@@ -524,6 +446,75 @@
         }
     }
 
+    /* Generic "tail + expand" output toggle used by subagents, background tasks, and tool stdout. */
+    .sp-ai-output-toggle {
+        margin-top: 4px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: start;
+    }
+
+    .sp-ai-output-toggle-pre {
+        margin: 0;
+        padding: 0;
+        background-color: transparent;
+        border: none;
+        font-family: var(--monospace-font);
+        font-size: 0.8571em; /* 12px at 14px/em */
+        line-height: 1.35;
+        white-space: pre-wrap;
+        opacity: 0.9;
+        min-width: 0;
+        /* collapsed: 3 lines */
+        height: calc(1.35em * 3);
+        overflow: hidden;
+    }
+
+    .sp-ai-output-toggle-btn {
+        flex: 0 0 auto;
+        align-self: start;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 999px;
+        padding: 1px 8px;
+        background-color: color-mix(in srgb, var(--color-background-widget-button) 55%, transparent);
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        cursor: pointer;
+        opacity: 0.85;
+
+        &:hover {
+            opacity: 1;
+            filter: brightness(0.98);
+        }
+    }
+
+    .sp-ai-output-toggle-less-label {
+        display: none !important;
+    }
+
+    .sp-ai-output-toggle-data {
+        display: none !important;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-more-label {
+        display: none !important;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-less-label {
+        display: inline !important;
+    }
+
+    .sp-ai-output-toggle.is-expanded .sp-ai-output-toggle-pre {
+        height: calc(1.35em * 6 + 12px);
+        overflow: auto;
+        padding: 8px 10px;
+        background-color: var(--color-background-widget-input);
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        border-radius: 8px;
+        opacity: 1;
+    }
+
     /* Legacy per-subagent output styles removed; use .sp-ai-output-toggle instead. */
 
     .sp-ai-btn-approve {
@@ -682,26 +673,13 @@
         flex: 0 0 auto;
         font-size: 0.7857em; /* 11px at 14px/em */
         font-weight: 700;
-        padding: 2px 8px 2px 18px;
+        padding: 2px 8px;
         border-radius: 999px;
         border: 1px solid var(--color-border-dropdown-widget-button);
         background-color: var(--color-background-widget-button);
         white-space: nowrap;
         position: relative;
         line-height: 1.4;
-
-        &::before {
-            content: "";
-            position: absolute;
-            left: 7px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 7px;
-            height: 7px;
-            border-radius: 999px;
-            background-color: currentcolor;
-            opacity: 0.7;
-        }
     }
 
     .sp-ai-subagent-status-running {
@@ -804,26 +782,13 @@
         flex: 0 0 auto;
         font-size: 0.7857em; /* 11px at 14px/em */
         font-weight: 700;
-        padding: 2px 8px 2px 18px;
+        padding: 2px 8px;
         border-radius: 999px;
         border: 1px solid var(--color-border-dropdown-widget-button);
         background-color: var(--color-background-widget-button);
         white-space: nowrap;
         position: relative;
         line-height: 1.4;
-
-        &::before {
-            content: "";
-            position: absolute;
-            left: 7px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 7px;
-            height: 7px;
-            border-radius: 999px;
-            background-color: currentcolor;
-            opacity: 0.7;
-        }
     }
 
     .sp-ai-background-task-status-pending {
