@@ -672,7 +672,6 @@
 
     .sp-ai-subagent-title {
         font-weight: 700;
-        font-style: italic;
         opacity: 0.95;
         overflow-wrap: anywhere;
     }
@@ -682,6 +681,7 @@
         font-family: var(--monospace-font);
         font-size: 0.9em;
         line-height: 1.35;
+        font-style: italic;
         opacity: 0.85;
         overflow-wrap: anywhere;
     }
