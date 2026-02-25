@@ -165,12 +165,12 @@
                             {{#each tasks}}
                                 <li class="sp-ai-background-task">
                                     <div class="sp-ai-background-task-main">
-                                        {{#if command}}
-                                            <div class="sp-ai-background-task-command">{{command}}</div>
+                                        {{#if description}}
+                                            <div class="sp-ai-background-task-title">{{description}}</div>
                                         {{/if}}
 
-                                        {{#if description}}
-                                            <div class="sp-ai-background-task-desc">{{description}}</div>
+                                        {{#if command}}
+                                            <div class="sp-ai-background-task-command">{{command}}</div>
                                         {{/if}}
 
                                         {{#if meta_line}}
@@ -494,7 +494,7 @@
         {{else}}
             <details class="sp-ai-section sp-ai-subagent-section" open>
                 <summary>
-                    <span>{{subagent_section_title}}</span>
+                    <h4 class="sp-ai-tool-section-title">{{subagent_section_title}}</h4>
                 </summary>
 
                 <div class="sp-ai-subagent-groups">
@@ -574,12 +574,12 @@
                         {{#each tasks}}
                             <li class="sp-ai-background-task">
                                 <div class="sp-ai-background-task-main">
-                                    {{#if command}}
-                                        <div class="sp-ai-background-task-command">{{command}}</div>
+                                    {{#if description}}
+                                        <div class="sp-ai-background-task-title">{{description}}</div>
                                     {{/if}}
 
-                                    {{#if description}}
-                                        <div class="sp-ai-background-task-desc">{{description}}</div>
+                                    {{#if command}}
+                                        <div class="sp-ai-background-task-command">{{command}}</div>
                                     {{/if}}
 
                                     {{#if meta_line}}
@@ -723,19 +723,11 @@
     {{/if}}
 
     {{#if has_blocks}}
-        <div class="sp-ai-blocks">
+        <div class="sp-ai-tool-sections">
             {{#each blocks}}
-                <section class="sp-ai-block sp-ai-block-{{kind}}{{#if is_unknown}} sp-ai-block-unknown{{/if}}{{#if is_stream}} sp-ai-block-stream sp-ai-block-stream-{{channel}}{{/if}}">
-                    <div class="sp-ai-block-header">
-                        <div class="sp-ai-block-meta">
-                            <span class="sp-ai-block-badge">{{label}}</span>
-                            {{#if title}}
-                                {{#unless (eq title label)}}
-                                    <span class="sp-ai-block-title">{{title}}</span>
-                                {{/unless}}
-                            {{/if}}
-                        </div>
-
+                <section class="sp-ai-tool-section sp-ai-block-{{kind}}{{#if is_stream}} sp-ai-tool-section-stream sp-ai-tool-section-stream-{{channel}}{{/if}}{{#if is_unknown}} sp-ai-tool-section-unknown{{/if}}">
+                    <div class="sp-ai-tool-section-header">
+                        <h4 class="sp-ai-tool-section-title">{{#if title}}{{title}}{{else}}{{label}}{{/if}}</h4>
                         <button class="sp-ai-icon-btn sp-ai-icon-btn-copy" type="button" data-copy-block="{{index}}" aria-label="Copy">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -789,7 +781,9 @@
                         </div>
                     {{else if has_list_items}}
                         {{#if is_file_tree}}
-                            <pre class="sp-ai-pre" data-language="">{{text}}</pre>
+                            <div class="sp-ai-tool-codewrap">
+                                <pre class="sp-ai-tool-code" data-language="">{{text}}</pre>
+                            </div>
                         {{else}}
                             <ul class="sp-ai-block-list">
                                 {{#each list_items}}
@@ -801,7 +795,9 @@
                         {{#if is_markdown}}
                             <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
                         {{else}}
-                            <pre class="sp-ai-pre{{#if language}} sp-ai-pre-lang{{/if}}" data-language="{{language}}">{{text}}</pre>
+                            <div class="sp-ai-tool-codewrap">
+                                <pre class="sp-ai-tool-code" data-language="{{language}}">{{text}}</pre>
+                            </div>
                         {{/if}}
                     {{/if}}
                 </section>

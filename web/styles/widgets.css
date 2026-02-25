@@ -832,6 +832,12 @@
         overflow-wrap: anywhere;
     }
 
+    .sp-ai-background-task-title {
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        opacity: 0.95;
+    }
+
     .sp-ai-background-task-desc {
         margin-top: 2px;
         overflow-wrap: anywhere;
