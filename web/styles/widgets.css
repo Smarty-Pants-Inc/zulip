@@ -565,14 +565,12 @@
 
     /* Hover-reveal for copy buttons, but keep them visible on touch devices. */
     .sp-ai-tool-section .sp-ai-icon-btn-copy,
-    .sp-ai-block .sp-ai-icon-btn-copy,
     .sp-ai-section summary .sp-ai-icon-btn-copy {
         opacity: 0;
     }
 
     @media (hover: hover) {
         .sp-ai-tool-section:hover .sp-ai-icon-btn-copy,
-        .sp-ai-block:hover .sp-ai-icon-btn-copy,
         .sp-ai-section summary:hover .sp-ai-icon-btn-copy,
         .sp-ai-section summary:focus-within .sp-ai-icon-btn-copy {
             opacity: 0.85;
@@ -1152,67 +1150,8 @@
         color: color-mix(in srgb, #ef4444 70%, var(--color-text-default));
     }
 
-    .sp-ai-blocks {
-        margin-top: 6px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 7px;
-    }
-
-    .sp-ai-block {
-        border: 1px solid var(--color-border-zulip-button);
-        border-radius: 6px;
-        background-color: var(--color-background-zulip-button);
-        padding: 7px;
-    }
-
-    .sp-ai-block-stream-stdout {
-        border-left: 3px solid hsl(156deg 28% 60%);
-        padding-left: 7px;
-    }
-
-    .sp-ai-block-stream-stderr {
-        border-left: 3px solid hsl(1deg 45% 58%);
-        padding-left: 7px;
-    }
-
-    .sp-ai-block-unknown {
-        border-style: dashed;
-    }
-
-    .sp-ai-block-header {
-        display: flex;
-        flex-flow: row wrap;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-
-    .sp-ai-block-meta {
-        display: flex;
-        flex-flow: row wrap;
-        align-items: baseline;
-        gap: 6px;
-        min-width: 12ch;
-        flex: 1 1 auto;
-    }
-
-    .sp-ai-block-badge {
-        flex: 0 0 auto;
-        font-size: 0.7857em;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        color: var(--color-text-default);
-        opacity: 0.8;
-    }
-
-    .sp-ai-block-title {
-        overflow-wrap: anywhere;
-    }
-
-
+    /* Legacy final-block card styles removed; final blocks now render using
+       the same tool-section layout as tool turns. */
     .sp-ai-table-wrap {
         margin-top: 6px;
         overflow-x: auto;
