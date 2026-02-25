@@ -672,6 +672,7 @@
 
     .sp-ai-subagent-title {
         font-weight: 700;
+        font-style: italic;
         opacity: 0.95;
         overflow-wrap: anywhere;
     }
@@ -1045,6 +1046,14 @@
     .sp-ai-panel-table .sp-ai-table-wrap {
         margin-top: 0;
         padding: 10px 12px;
+    }
+
+    .sp-ai-panel-markdown .rendered_markdown > :first-child {
+        margin-top: 0;
+    }
+
+    .sp-ai-panel-markdown .rendered_markdown > :last-child {
+        margin-bottom: 0;
     }
 
     .sp-ai-panel-list .sp-ai-plan-groups,

@@ -360,7 +360,9 @@
                             {{/if}}
                         {{else}}
                             {{#if is_markdown}}
-                                <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                                <div class="sp-ai-panel sp-ai-panel-markdown">
+                                    <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                                </div>
                             {{else}}
                                 <div class="sp-ai-tool-codewrap">
                                     <pre class="sp-ai-tool-code" data-language="{{language}}">{{text}}</pre>
@@ -843,7 +845,9 @@
                         {{/if}}
                     {{else}}
                         {{#if is_markdown}}
-                            <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                            <div class="sp-ai-panel sp-ai-panel-markdown">
+                                <div class="sp-ai-markdown rendered_markdown">{{{markdown_html}}}</div>
+                            </div>
                         {{else}}
                             <div class="sp-ai-tool-codewrap">
                                 <pre class="sp-ai-tool-code" data-language="{{language}}">{{text}}</pre>
