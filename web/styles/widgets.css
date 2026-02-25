@@ -657,7 +657,7 @@
 
     .sp-ai-subagent {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
         gap: 10px;
         align-items: start;
         padding: 8px;
@@ -666,13 +666,33 @@
         background-color: var(--color-background-widget-input);
     }
 
-    .sp-ai-subagent-right {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 6px;
-        height: 100%;
+    .sp-ai-subagent-main {
+        min-width: 0;
+    }
+
+    .sp-ai-subagent-title {
+        font-weight: 700;
+        opacity: 0.95;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-subagent-kind {
+        margin-top: 2px;
+        font-family: var(--monospace-font);
+        font-size: 0.9em;
+        line-height: 1.35;
+        opacity: 0.85;
+        overflow-wrap: anywhere;
+    }
+
+    .sp-ai-subagent-open-spacer {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+    }
+
+    .sp-ai-subagent-open {
+        align-self: start;
     }
 
     .sp-ai-subagent-status {
@@ -704,23 +724,7 @@
         color: hsl(0deg 0% 40%);
     }
 
-    .sp-ai-subagent-head {
-        display: flex;
-        flex-flow: row wrap;
-        gap: 6px;
-        align-items: baseline;
-    }
-
-    .sp-ai-subagent-type {
-        font-weight: 700;
-        font-family: var(--monospace-font);
-        font-size: 0.9285em; /* 13px at 14px/em */
-    }
-
-    .sp-ai-subagent-desc {
-        opacity: 0.9;
-        overflow-wrap: anywhere;
-    }
+    /* Legacy subagent header styles removed; subagents now mirror background-task typography. */
 
     .sp-ai-subagent-meta {
         margin-top: 2px;
@@ -737,20 +741,7 @@
         overflow-wrap: anywhere;
     }
 
-    .sp-ai-subagent-link {
-        align-self: flex-end;
-        border: 1px solid var(--color-border-dropdown-widget-button);
-        border-radius: 6px;
-        padding: 2px 8px;
-        background-color: var(--color-background-widget-button);
-        font-weight: 600;
-        font-size: 0.8571em; /* 12px at 14px/em */
-        text-decoration: none;
-
-        &:hover {
-            filter: brightness(0.98);
-        }
-    }
+    /* Legacy subagent link styles removed; use .sp-ai-icon-btn + .sp-ai-subagent-open. */
 
     .sp-ai-background-task-groups {
         margin-top: 6px;

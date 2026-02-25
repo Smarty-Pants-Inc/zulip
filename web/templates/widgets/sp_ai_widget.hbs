@@ -445,10 +445,13 @@
                             {{#each agents}}
                                 <li class="sp-ai-subagent">
                                     <div class="sp-ai-subagent-main">
-                                        <div class="sp-ai-subagent-head">
-                                            <span class="sp-ai-subagent-type">{{type}}</span>
-                                            <span class="sp-ai-subagent-desc">{{description}}</span>
-                                        </div>
+                                        {{#if description}}
+                                            <div class="sp-ai-subagent-title">{{description}}</div>
+                                        {{/if}}
+
+                                        {{#if type}}
+                                            <div class="sp-ai-subagent-kind">{{type}}</div>
+                                        {{/if}}
 
                                         {{#if has_output_preview}}
                                             <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
@@ -475,12 +478,24 @@
                                         {{/if}}
                                     </div>
 
-                                    <div class="sp-ai-subagent-right">
-                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
-                                        {{#if agentURL}}
-                                            <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
-                                        {{/if}}
-                                    </div>
+                                    {{#if agentURL}}
+                                        <a
+                                            class="sp-ai-icon-btn sp-ai-subagent-open"
+                                            href="{{agentURL}}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label="Open"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M7 17L17 7"></path>
+                                                <path d="M7 7h10v10"></path>
+                                            </svg>
+                                        </a>
+                                    {{else}}
+                                        <span class="sp-ai-subagent-open-spacer" aria-hidden="true"></span>
+                                    {{/if}}
+
+                                    <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
                                 </li>
                             {{/each}}
                         </ul>
@@ -508,10 +523,13 @@
                                 {{#each agents}}
                                     <li class="sp-ai-subagent">
                                         <div class="sp-ai-subagent-main">
-                                            <div class="sp-ai-subagent-head">
-                                                <span class="sp-ai-subagent-type">{{type}}</span>
-                                                <span class="sp-ai-subagent-desc">{{description}}</span>
-                                            </div>
+                                            {{#if description}}
+                                                <div class="sp-ai-subagent-title">{{description}}</div>
+                                            {{/if}}
+
+                                            {{#if type}}
+                                                <div class="sp-ai-subagent-kind">{{type}}</div>
+                                            {{/if}}
 
                                             {{#if has_output_preview}}
                                                 <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
@@ -538,12 +556,24 @@
                                             {{/if}}
                                         </div>
 
-                                        <div class="sp-ai-subagent-right">
-                                            <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
-                                            {{#if agentURL}}
-                                                <a class="sp-ai-subagent-link" href="{{agentURL}}" target="_blank" rel="noopener noreferrer">Open</a>
-                                            {{/if}}
-                                        </div>
+                                        {{#if agentURL}}
+                                            <a
+                                                class="sp-ai-icon-btn sp-ai-subagent-open"
+                                                href="{{agentURL}}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label="Open"
+                                            >
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M7 17L17 7"></path>
+                                                    <path d="M7 7h10v10"></path>
+                                                </svg>
+                                            </a>
+                                        {{else}}
+                                            <span class="sp-ai-subagent-open-spacer" aria-hidden="true"></span>
+                                        {{/if}}
+
+                                        <span class="sp-ai-subagent-status sp-ai-subagent-status-{{status}}">{{status_label}}</span>
                                     </li>
                                 {{/each}}
                             </ul>
