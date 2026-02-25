@@ -1029,6 +1029,29 @@
         overflow: hidden;
     }
 
+    /* Generic embedded section body container (plan/todo/table/etc). */
+    .sp-ai-panel {
+        margin-top: 4px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-dropdown-widget-button);
+        background-color: color-mix(in srgb, var(--color-background-widget-input) 70%, transparent);
+    }
+
+    .sp-ai-panel-table {
+        padding: 0;
+    }
+
+    .sp-ai-panel-table .sp-ai-table-wrap {
+        margin-top: 0;
+        padding: 10px 12px;
+    }
+
+    .sp-ai-panel-list .sp-ai-plan-groups,
+    .sp-ai-panel-list .sp-ai-todo-groups {
+        margin-top: 0;
+    }
+
     .sp-ai-tool-code {
         margin: 0;
         padding: 10px 12px;
