@@ -678,12 +678,8 @@
     }
 
     .sp-ai-subagent-name {
-        font-family: var(--monospace-font);
-        font-size: 0.9em;
         font-weight: 700;
-        font-style: italic;
-        line-height: 1.35;
-        opacity: 0.85;
+        opacity: 0.95;
     }
 
     .sp-ai-subagent-sep {
