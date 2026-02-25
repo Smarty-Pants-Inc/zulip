@@ -670,19 +670,29 @@
         min-width: 0;
     }
 
-    .sp-ai-subagent-title {
-        font-weight: 700;
-        opacity: 0.95;
-        overflow-wrap: anywhere;
+    .sp-ai-subagent-header {
+        display: flex;
+        flex-flow: row wrap;
+        align-items: baseline;
+        gap: 6px;
     }
 
-    .sp-ai-subagent-kind {
-        margin-top: 2px;
+    .sp-ai-subagent-name {
         font-family: var(--monospace-font);
         font-size: 0.9em;
-        line-height: 1.35;
+        font-weight: 700;
         font-style: italic;
+        line-height: 1.35;
         opacity: 0.85;
+    }
+
+    .sp-ai-subagent-sep {
+        opacity: 0.65;
+    }
+
+    .sp-ai-subagent-task {
+        font-weight: 700;
+        opacity: 0.95;
         overflow-wrap: anywhere;
     }
 

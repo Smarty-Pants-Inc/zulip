@@ -457,13 +457,17 @@
                             {{#each agents}}
                                 <li class="sp-ai-subagent">
                                     <div class="sp-ai-subagent-main">
-                                        {{#if description}}
-                                            <div class="sp-ai-subagent-title">{{description}}</div>
-                                        {{/if}}
-
-                                        {{#if type}}
-                                            <div class="sp-ai-subagent-kind">{{type}}</div>
-                                        {{/if}}
+                                        <div class="sp-ai-subagent-header">
+                                            {{#if type}}
+                                                <span class="sp-ai-subagent-name">{{type}}</span>
+                                            {{/if}}
+                                            {{#if (and type description)}}
+                                                <span class="sp-ai-subagent-sep">:</span>
+                                            {{/if}}
+                                            {{#if description}}
+                                                <span class="sp-ai-subagent-task">{{description}}</span>
+                                            {{/if}}
+                                        </div>
 
                                         {{#if has_output_preview}}
                                             <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
@@ -535,13 +539,17 @@
                                 {{#each agents}}
                                     <li class="sp-ai-subagent">
                                         <div class="sp-ai-subagent-main">
-                                            {{#if description}}
-                                                <div class="sp-ai-subagent-title">{{description}}</div>
-                                            {{/if}}
-
-                                            {{#if type}}
-                                                <div class="sp-ai-subagent-kind">{{type}}</div>
-                                            {{/if}}
+                                            <div class="sp-ai-subagent-header">
+                                                {{#if type}}
+                                                    <span class="sp-ai-subagent-name">{{type}}</span>
+                                                {{/if}}
+                                                {{#if (and type description)}}
+                                                    <span class="sp-ai-subagent-sep">:</span>
+                                                {{/if}}
+                                                {{#if description}}
+                                                    <span class="sp-ai-subagent-task">{{description}}</span>
+                                                {{/if}}
+                                            </div>
 
                                             {{#if has_output_preview}}
                                                 <div class="sp-ai-output-toggle" data-sp-ai-output-toggle>
