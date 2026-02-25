@@ -1052,6 +1052,21 @@
         margin-top: 0;
     }
 
+    /* When list items are inside a panel, avoid nested "cards"; use padding only. */
+    .sp-ai-panel .sp-ai-block-list {
+        margin-top: 0;
+        gap: 4px;
+    }
+
+    .sp-ai-panel .sp-ai-block-list-item {
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background-color: transparent;
+        font-size: 0.9em;
+        opacity: 0.9;
+    }
+
     .sp-ai-tool-code {
         margin: 0;
         padding: 10px 12px;

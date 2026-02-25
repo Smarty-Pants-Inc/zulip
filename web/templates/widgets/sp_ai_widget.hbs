@@ -323,24 +323,26 @@
                                 </div>
                             </div>
                         {{else if is_context_usage}}
-                            <div class="sp-ai-context-usage">
-                                {{#if has_context_usage_percent}}
-                                    <div class="sp-ai-context-usage-bar" role="progressbar" aria-valuenow="{{context_usage_percent}}" aria-valuemin="0" aria-valuemax="100">
-                                        <div class="sp-ai-context-usage-bar-fill" style="width: {{context_usage_percent}}%;"></div>
-                                    </div>
-                                {{/if}}
+                            <div class="sp-ai-panel">
+                                <div class="sp-ai-context-usage">
+                                    {{#if has_context_usage_percent}}
+                                        <div class="sp-ai-context-usage-bar" role="progressbar" aria-valuenow="{{context_usage_percent}}" aria-valuemin="0" aria-valuemax="100">
+                                            <div class="sp-ai-context-usage-bar-fill" style="width: {{context_usage_percent}}%;"></div>
+                                        </div>
+                                    {{/if}}
 
-                                {{#if text}}
-                                    <div class="sp-ai-context-usage-summary">{{text}}</div>
-                                {{/if}}
+                                    {{#if text}}
+                                        <div class="sp-ai-context-usage-summary">{{text}}</div>
+                                    {{/if}}
 
-                                {{#if has_list_items}}
-                                    <ul class="sp-ai-block-list">
-                                        {{#each list_items}}
-                                            <li class="sp-ai-block-list-item">{{this}}</li>
-                                        {{/each}}
-                                    </ul>
-                                {{/if}}
+                                    {{#if has_list_items}}
+                                        <ul class="sp-ai-block-list">
+                                            {{#each list_items}}
+                                                <li class="sp-ai-block-list-item">{{this}}</li>
+                                            {{/each}}
+                                        </ul>
+                                    {{/if}}
+                                </div>
                             </div>
                         {{else if has_list_items}}
                             {{#if is_file_tree}}
@@ -348,11 +350,13 @@
                                     <pre class="sp-ai-tool-code" data-language="">{{text}}</pre>
                                 </div>
                             {{else}}
-                                <ul class="sp-ai-block-list">
-                                    {{#each list_items}}
-                                        <li class="sp-ai-block-list-item">{{this}}</li>
-                                    {{/each}}
-                                </ul>
+                                <div class="sp-ai-panel sp-ai-panel-list">
+                                    <ul class="sp-ai-block-list">
+                                        {{#each list_items}}
+                                            <li class="sp-ai-block-list-item">{{this}}</li>
+                                        {{/each}}
+                                    </ul>
+                                </div>
                             {{/if}}
                         {{else}}
                             {{#if is_markdown}}
@@ -802,24 +806,26 @@
                             </div>
                         </div>
                     {{else if is_context_usage}}
-                        <div class="sp-ai-context-usage">
-                            {{#if has_context_usage_percent}}
-                                <div class="sp-ai-context-usage-bar" role="progressbar" aria-valuenow="{{context_usage_percent}}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="sp-ai-context-usage-bar-fill" style="width: {{context_usage_percent}}%;"></div>
-                                </div>
-                            {{/if}}
+                        <div class="sp-ai-panel">
+                            <div class="sp-ai-context-usage">
+                                {{#if has_context_usage_percent}}
+                                    <div class="sp-ai-context-usage-bar" role="progressbar" aria-valuenow="{{context_usage_percent}}" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="sp-ai-context-usage-bar-fill" style="width: {{context_usage_percent}}%;"></div>
+                                    </div>
+                                {{/if}}
 
-                            {{#if text}}
-                                <div class="sp-ai-context-usage-summary">{{text}}</div>
-                            {{/if}}
+                                {{#if text}}
+                                    <div class="sp-ai-context-usage-summary">{{text}}</div>
+                                {{/if}}
 
-                            {{#if has_list_items}}
-                                <ul class="sp-ai-block-list">
-                                    {{#each list_items}}
-                                        <li class="sp-ai-block-list-item">{{this}}</li>
-                                    {{/each}}
-                                </ul>
-                            {{/if}}
+                                {{#if has_list_items}}
+                                    <ul class="sp-ai-block-list">
+                                        {{#each list_items}}
+                                            <li class="sp-ai-block-list-item">{{this}}</li>
+                                        {{/each}}
+                                    </ul>
+                                {{/if}}
+                            </div>
                         </div>
                     {{else if has_list_items}}
                         {{#if is_file_tree}}
@@ -827,11 +833,13 @@
                                 <pre class="sp-ai-tool-code" data-language="">{{text}}</pre>
                             </div>
                         {{else}}
-                            <ul class="sp-ai-block-list">
-                                {{#each list_items}}
-                                    <li class="sp-ai-block-list-item">{{this}}</li>
-                                {{/each}}
-                            </ul>
+                            <div class="sp-ai-panel sp-ai-panel-list">
+                                <ul class="sp-ai-block-list">
+                                    {{#each list_items}}
+                                        <li class="sp-ai-block-list-item">{{this}}</li>
+                                    {{/each}}
+                                </ul>
+                            </div>
                         {{/if}}
                     {{else}}
                         {{#if is_markdown}}
