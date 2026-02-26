@@ -1,7 +1,11 @@
 import $ from "jquery";
 
 import type {GenericWidget, PostToServerFunction} from "./generic_widget.ts";
-import {create_widget_instance, is_supported_widget_type} from "./generic_widget.ts";
+import {
+    create_widget_instance,
+    is_supported_widget_type,
+    render_widget_instance,
+} from "./generic_widget.ts";
 import * as message_lists from "./message_lists.ts";
 import type {Message} from "./message_store.ts";
 import type {Event} from "./widget_data.ts";
@@ -18,9 +22,7 @@ import type {AnyWidgetData} from "./widget_schema.ts";
 type ActivateArguments = {
     any_data: AnyWidgetData;
     events: Event[];
-    $row: JQuery;
     message: Message;
-    post_to_server: PostToServerFunction;
 };
 
 const generic_widget_map = new Map<number, GenericWidget>();
@@ -37,19 +39,23 @@ export function get_message_ids(): number[] {
     return [...generic_widget_map.keys()];
 }
 
-function set_widget_in_message($row: JQuery, $widget_elem: JQuery, any_data: AnyWidgetData): void {
+function set_widget_in_message(
+    $row: JQuery,
+    $widget_elem: JQuery,
+    widget_data: ReturnType<GenericWidget["get_widget_data"]>,
+): void {
     const $content_holder = $row.find(".message_content");
 
     // For most widgets, we replace the message content entirely.
     //
     // For our agent-message POC, we want to test both "card-only" and
     // "card + text" variants without changing the server payload shape.
-    if (any_data.widget_type === "sp_ai") {
+    if (widget_data.widget_type === "sp_ai") {
         const existing_text = $content_holder.text().trim();
-        const display =
-            any_data.extra_data && typeof any_data.extra_data === "object"
-                ? (any_data.extra_data as any).display
-                : undefined;
+        const display = (widget_data.data && typeof widget_data.data === "object" ? (widget_data.data as any).display : undefined) as
+            | "card_only"
+            | "card_with_caption"
+            | undefined;
 
         if (display === "card_only" || existing_text.startsWith("/sp_ai")) {
             // Card-only mode: the raw message body isn't useful to render alongside the widget.
@@ -64,42 +70,19 @@ function set_widget_in_message($row: JQuery, $widget_elem: JQuery, any_data: Any
 }
 
 export function activate(in_opts: ActivateArguments): void {
-    const {any_data, events, $row, message, post_to_server} = in_opts;
+    const {any_data, events, message} = in_opts;
 
     // the callee will log any appropriate warnings here
     if (!is_supported_widget_type(any_data.widget_type)) {
         return;
     }
 
-    const is_message_preview = $row.parent()?.attr("id") === "report-message-preview-container";
-
-    if (
-        !$row.attr("id")!.startsWith(`message-row-${message_lists.current?.id}-`) &&
-        !is_message_preview
-    ) {
-        // Don't activate widgets for messages that are not in the current view or
-        // in message report modal.
-        return;
-    }
-
-    // We depend on our widget implementations to build the
-    // DOM and event handlers that eventually go in this div.
-    const $widget_elem = $("<div>").addClass("widget-content");
-
     const generic_widget = create_widget_instance({
-        post_to_server,
-        $widget_elem,
         message,
         any_data,
     });
 
-    if (!is_message_preview) {
-        // Don't re-register the original message's widget event
-        // handler.
-        generic_widget_map.set(message.id, generic_widget);
-    }
-
-    set_widget_in_message($row, $widget_elem, any_data);
+    generic_widget_map.set(message.id, generic_widget);
 
     // Replay any events that already happened.  (This is common
     // when the user opens a conversation with a poll that
@@ -114,17 +97,60 @@ export function activate(in_opts: ActivateArguments): void {
     }
 }
 
-export function handle_event(widget_event: Event & {message_id: number}): void {
-    const generic_widget = generic_widget_map.get(widget_event.message_id);
+export function render(in_opts: {
+    post_to_server: PostToServerFunction;
+    $row: JQuery;
+    message: Message;
+}): void {
+    const {$row, message, post_to_server} = in_opts;
+    const generic_widget = generic_widget_map.get(message.id);
 
-    if (!generic_widget || message_lists.current?.get_row(widget_event.message_id).length === 0) {
-        // It is common for submessage events to arrive on
-        // messages that we don't yet have in view. We
-        // just ignore them completely here.
+    if (!generic_widget) {
+        return;
+    }
+
+    // We depend on our widget implementations to build the
+    // DOM and event handlers that eventually go in this div.
+    const $widget_elem = $("<div>").addClass("widget-content");
+
+    set_widget_in_message($row, $widget_elem, generic_widget.get_widget_data());
+
+    render_widget_instance({
+        post_to_server,
+        $widget_elem,
+        message,
+        widget_data: generic_widget.get_widget_data(),
+        rerender: false,
+    });
+}
+
+export function handle_event(
+    widget_event: Event & {
+        post_to_server: PostToServerFunction;
+        message: Message;
+    },
+): void {
+    const generic_widget = generic_widget_map.get(widget_event.message.id);
+    const $message_row = message_lists.current?.get_row(widget_event.message.id);
+    if (!generic_widget) {
         return;
     }
 
     const events = [widget_event];
 
     generic_widget.handle_inbound_events(events);
+
+    // It is common for submessage events to arrive on
+    // messages that we don't yet have in view. We
+    // just ignore them completely here.
+    if ($message_row && $message_row.length > 0) {
+        const $widget_elem = $message_row.find(".widget-content");
+        render_widget_instance({
+            post_to_server: widget_event.post_to_server,
+            $widget_elem,
+            message: widget_event.message,
+            widget_data: generic_widget.get_widget_data(),
+            rerender: true,
+        });
+    }
 }

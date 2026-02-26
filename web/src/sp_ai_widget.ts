@@ -18,11 +18,12 @@ import {
     sp_ai_background_tasks_block_schema,
     sp_ai_plan_v2_block_schema,
     sp_ai_todo_v2_block_schema,
+    type SpAiWidgetOutboundData,
     type SpAiWidgetExtraData,
     type SpAiWidgetInboundEvent,
 } from "./sp_ai_data.ts";
 import type {Event} from "./widget_data.ts";
-import type {AnyWidgetData} from "./widget_schema.ts";
+import type {AnyWidgetData, WidgetData} from "./widget_schema.ts";
 
 const widget_state_schema = z.object({
     version: z.int().check(z.nonnegative()),
@@ -1254,342 +1255,358 @@ async function copy_text(text: string): Promise<void> {
     }
 }
 
-export function activate(opts: {
-    $elem: JQuery;
-    any_data: AnyWidgetData;
-    message: Message;
-    callback: (data: {type: "action"; action: WidgetAction}) => void;
-}): (events: Event[]) => void {
-    assert(opts.any_data.widget_type === "sp_ai");
+export function activate({any_data}: {any_data: AnyWidgetData; message: Message}): {
+    inbound_events_handler: (events: Event[]) => void;
+    widget_data: WidgetData;
+} {
+    assert(any_data.widget_type === "sp_ai");
 
-    if (opts.any_data.extra_data === null) {
+    if (any_data.extra_data === null) {
         blueslip.error("sp_ai widget: invalid extra_data");
-        return (_events: Event[]): void => {
-            /* noop */
-        };
     }
 
-    let state: WidgetState = normalize_extra_data(opts.any_data.extra_data);
+    // The widget is resilient to evolving payloads; keep the stored data permissive.
+    const widget_data: {widget_type: "sp_ai"; data: SpAiWidgetExtraData | undefined} = {
+        widget_type: "sp_ai",
+        data: any_data.extra_data === null ? undefined : (any_data.extra_data as SpAiWidgetExtraData),
+    };
 
-    function render(): void {
-        const blocks_for_template = state.blocks.map((b) => {
-            if (b.kind === "markdown") {
-                // Client-side markdown rendering, then enhance with rendered_markdown.ts
-                // (spoilers, code block copy buttons, etc.).
-                const rendered = markdown.render(b.text).content;
-                return {
-                    ...b,
-                    is_markdown: true,
-                    markdown_html: rendered,
-                };
-            }
-
-            return {
-                ...b,
-                is_markdown: false,
-                markdown_html: "",
-            };
-        });
-
-        // Tool-call parity: show Args/Parameters at the very top of the card.
-        const argsBlock = blocks_for_template.find((b) => {
-            if (b.kind !== "code") return false;
-            const t = String(b.title || "").trim().toLowerCase();
-            return t === "args" || t === "arguments" || t === "parameters";
-        });
-        const has_args_block = argsBlock !== undefined;
-        const args_block_index = argsBlock?.index ?? -1;
-        const args_block_title = argsBlock?.title ?? "Args";
-        const args_block_language = argsBlock?.language ?? "";
-        const args_block_text = argsBlock?.text ?? "";
-
-        const blocks_without_args = has_args_block
-            ? blocks_for_template.filter((b) => b.index !== args_block_index)
-            : blocks_for_template;
-
-        // Foreground tool stdout/stderr: render as a compact, scrolling preview area
-        // rather than a separate nested block section.
-        const streamBlocks =
-            state.kind === "tool"
-                ? blocks_without_args.filter((b) => b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr"))
-                : [];
-        const has_tool_stream_preview = streamBlocks.length > 0;
-        const tool_stream_preview_title = streamBlocks.some((b) => b.channel === "stderr")
-            ? "Stdout / Stderr"
-            : "Stdout";
-        const tool_stream_preview_text = streamBlocks
-            .map((b) => {
-                const t = String(b.text || "");
-                if (streamBlocks.length === 1) return t;
-                return `${b.channel}: ${t}`;
-            })
-            .join("\n");
-
-        const tool_stream_preview_text_trimmed = tool_stream_preview_text.trim();
-        const tool_stream_lines = tool_stream_preview_text_trimmed
-            ? tool_stream_preview_text_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
-            : [];
-        const tool_stream_tail_lines = tool_stream_lines.length > 0
-            ? tool_stream_lines.slice(Math.max(0, tool_stream_lines.length - 3))
-            : [];
-        const tool_stream_tail = tool_stream_tail_lines.join("\n");
-        const tool_stream_more_count = Math.max(0, tool_stream_lines.length - tool_stream_tail_lines.length);
-        const has_tool_stream_more = tool_stream_more_count > 0;
-        const tool_stream_more_label = has_tool_stream_more
-            ? `+${tool_stream_more_count} more line${tool_stream_more_count === 1 ? "" : "s"}`
-            : "";
-
-        const blocks_without_args_or_streams = has_tool_stream_preview
-            ? blocks_without_args.filter((b) => !(b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr")))
-            : blocks_without_args;
-
-        const html = render_widgets_sp_ai_widget({
-            ...state,
-            kind_label: kind_label(state.kind),
-            status_label: status_label(state.status),
-            show_status_pill: state.kind !== "error",
-            tool_status_label: tool_status_label(state.status),
-            show_kind_badge: state.kind !== "subagent_group",
-            is_subagent_group_card: state.kind === "subagent_group",
-            is_thinking_kind: state.kind === "thinking",
-            reasoning_label: state.status === "running" ? "Thinking\u2026" : "Thought for a few seconds",
-            reasoning_text: state.output || state.caption || "",
-            has_reasoning_text: (state.output || state.caption || "") !== "",
-            // Auto-expand while streaming content; collapsed when done.
-            reasoning_expanded: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "true" : "false",
-            reasoning_content_hidden: state.kind === "thinking" && state.status === "running" && (state.output || state.caption || "") !== "" ? "false" : "true",
-            is_tool_kind: state.kind === "tool",
-            tool_title: present_tool_title(state.tool || state.title),
-            tool_open:
-                state.kind === "tool" &&
-                (state.status === "pending" ||
-                    state.status === "running" ||
-                    state.status === "approval_requested" ||
-                    state.status === "error" ||
-                    state.status === "denied"),
-            show_tool_approval_actions: state.kind === "tool" && state.status === "approval_requested",
-            show_caption: state.display === "card_with_caption" && state.caption !== "",
-            show_tool: state.tool !== "",
-            has_input:
-                state.blocks.length === 0 &&
-                !state.has_subagent_groups &&
-                !state.has_background_tasks &&
-                state.input !== "",
-            has_output:
-                state.blocks.length === 0 &&
-                !state.has_subagent_groups &&
-                !state.has_background_tasks &&
-                state.output !== "",
-            has_blocks: state.blocks.length > 0,
-            has_args_block,
-            args_block_index,
-            args_block_title,
-            args_block_language,
-            args_block_text,
-            has_tool_stream_preview,
-            tool_stream_preview_title,
-            tool_stream_preview_text: tool_stream_preview_text_trimmed,
-            tool_stream_preview_tail: tool_stream_tail,
-            has_tool_stream_more,
-            tool_stream_more_label,
-            has_blocks: blocks_without_args_or_streams.length > 0,
-            blocks: blocks_without_args_or_streams,
-            show_abort: state.status === "running",
-            show_retry: state.status !== "running",
-            show_approve: state.kind === "ask",
-            show_deny: state.kind === "ask",
-            has_widget_actions: true,
-            show_parallel: state.parallel !== undefined,
-            parallel_first: state.parallel ? !state.parallel.hasPrev : false,
-            parallel_last: state.parallel ? !state.parallel.hasNext : false,
-        });
-
-        opts.$elem.html(html);
-
-        // Enhance rendered markdown blocks (spoilers, codeblock copy buttons, etc.).
-        opts.$elem.find(".sp-ai-markdown.rendered_markdown").each(function () {
-            update_rendered_markdown_elements($(this));
-        });
-
-        // Apply syntax highlighting to all code blocks inside this widget.
-        void apply_sp_ai_highlighting(opts.$elem[0] as HTMLElement);
-
-        // Reasoning trigger: toggle collapsible content.
-        opts.$elem.find("button.sp-ai-reasoning-trigger").on("click", (e) => {
-            e.stopPropagation();
-            const trigger = e.currentTarget as HTMLElement;
-            const expanded = trigger.getAttribute("aria-expanded") === "true";
-            trigger.setAttribute("aria-expanded", String(!expanded));
-            const content = trigger.closest(".sp-ai-reasoning")?.querySelector(".sp-ai-reasoning-content");
-            if (content) {
-                content.setAttribute("aria-hidden", String(expanded));
-            }
-        });
-
-        opts.$elem.find("button[data-copy]").on("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const target = $(e.currentTarget).attr("data-copy") ?? "";
-            const text = target === "input" ? state.input : target === "output" ? state.output : "";
-            void copy_text(text);
-        });
-
-        opts.$elem.find("button[data-copy-block]").on("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const raw_index = $(e.currentTarget).attr("data-copy-block") ?? "";
-            const index = Number.parseInt(raw_index, 10);
-            if (!Number.isInteger(index)) {
-                return;
-            }
-
-            const block = state.blocks.find((item) => item.index === index);
-            if (!block) {
-                return;
-            }
-
-            void copy_text(block.copy_text);
-        });
-
-        opts.$elem.find("button[data-copy-bg-task-command]").on("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const raw = $(e.currentTarget).attr("data-copy-bg-task-command") ?? "";
-            const [raw_group, raw_task] = raw.split(":", 2);
-            const group_index = Number.parseInt(raw_group ?? "", 10);
-            const task_index = Number.parseInt(raw_task ?? "", 10);
-            if (!Number.isInteger(group_index) || !Number.isInteger(task_index)) {
-                return;
-            }
-
-            const group = state.background_task_groups.find((g) => g.group_index === group_index);
-            const task = group?.tasks.find((t) => t.task_index === task_index);
-            if (!task) {
-                return;
-            }
-
-            void copy_text(task.command);
-        });
-
-        // Wire output-toggle payload swap (collapsed tail vs full scrollable).
-        // We keep a single <pre> in the layout to avoid adding vertical whitespace.
-        const syncOutputToggle = (root: HTMLElement): void => {
-            const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
-            if (!pre) return;
-
-            const tail = root.querySelector("pre.sp-ai-output-toggle-data-tail")?.textContent ?? "";
-            const full = root.querySelector("pre.sp-ai-output-toggle-data-full")?.textContent ?? "";
-            const expanded = root.classList.contains("is-expanded");
-            pre.textContent = expanded ? full : tail;
-        };
-
-        opts.$elem.find("[data-sp-ai-output-toggle]").each(function () {
-            try {
-                syncOutputToggle(this as HTMLElement);
-            } catch {
-                // ignore
-            }
-        });
-
-        // Expand/collapse compact output previews (subagents, background tasks, tool stdout).
-        opts.$elem.find("button[data-sp-ai-toggle-output]").on("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const btn = e.currentTarget as HTMLElement;
-            const root = btn.closest("[data-sp-ai-output-toggle]") as HTMLElement | null;
-            if (!root) return;
-            root.classList.toggle("is-expanded");
-
-            syncOutputToggle(root);
-
-            // Scroll expanded output to bottom by default.
-            if (root.classList.contains("is-expanded")) {
-                const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
-                if (pre) {
-                    try {
-                        pre.scrollTop = pre.scrollHeight;
-                    } catch {
-                        // ignore
-                    }
-                }
-            }
-        });
-
-        // Scroll expanded output blocks to the bottom by default.
-        opts.$elem.find(".sp-ai-output-toggle.is-expanded pre.sp-ai-output-toggle-pre").each(function () {
-            try {
-                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
-            } catch {
-                // Ignore scroll failures; output preview is best-effort.
-            }
-        });
-
-        opts.$elem.find("pre.sp-ai-output-toggle-pre").each(function () {
-            // Only scroll pre elements that are already in the expanded state.
-            const root = (this as HTMLElement).closest(".sp-ai-output-toggle");
-            if (!root || !root.classList.contains("is-expanded")) {
-                return;
-            }
-            try {
-                (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
-            } catch {
-                // Ignore scroll failures; output preview is best-effort.
-            }
-        });
-
-        opts.$elem.find("button[data-action]").on("click", (e) => {
-            e.stopPropagation();
-            const action = $(e.currentTarget).attr("data-action") ?? "";
-            if (action === "abort" || action === "retry" || action === "approve" || action === "deny") {
-                opts.callback({type: "action", action});
-            }
-        });
-    }
-
-    function apply_inbound_event(evt: SpAiWidgetInboundEvent): void {
-        if (evt.type === "set_extra_data") {
-            const extra: any = evt.extra_data;
-            state = normalize_extra_data(extra);
-            return;
-        }
-
-        if (evt.type === "set_status") {
-            state = {...state, status: evt.status};
-            return;
-        }
-
-        if (evt.type === "set_output") {
-            state = {...state, output: evt.output};
-            return;
-        }
-
-        if (evt.type === "append_output") {
-            const next_output = state.output === "" ? evt.chunk : state.output + evt.chunk;
-            state = {...state, output: next_output};
-            return;
-        }
-
-        const _never: never = evt;
-        void _never;
-    }
-
-    const handle_events = function (events: Event[]): void {
+    const handle_events = (events: Event[]): void => {
+        // In this architecture, inbound events mutate widget_data and the caller will
+        // rerender the widget; do not manipulate the DOM here.
         for (const event of events) {
             const parsed = sp_ai_widget_inbound_event_schema.safeParse(event.data);
             if (!parsed.success) {
-                // Ignore unknown/invalid events; don't crash the message list.
                 continue;
             }
 
-            apply_inbound_event(parsed.data);
-        }
+            const evt = parsed.data;
+            const cur: any = widget_data.data && typeof widget_data.data === "object" ? widget_data.data : {};
 
-        render();
+            if (evt.type === "set_extra_data") {
+                widget_data.data =
+                    evt.extra_data && typeof evt.extra_data === "object" ? (evt.extra_data as SpAiWidgetExtraData) : ({} as any);
+                continue;
+            }
+
+            if (evt.type === "set_status") {
+                widget_data.data = {...cur, status: evt.status};
+                continue;
+            }
+
+            if (evt.type === "set_output") {
+                widget_data.data = {...cur, output: evt.output};
+                continue;
+            }
+
+            if (evt.type === "append_output") {
+                const prev = typeof cur.output === "string" ? cur.output : "";
+                widget_data.data = {...cur, output: prev === "" ? evt.chunk : prev + evt.chunk};
+                continue;
+            }
+        }
     };
 
-    render();
+    return {
+        inbound_events_handler: handle_events,
+        widget_data: widget_data as WidgetData,
+    };
+}
 
-    return handle_events;
+export function render({
+    $elem,
+    callback,
+    widget_data,
+}: {
+    $elem: JQuery;
+    callback: (data: SpAiWidgetOutboundData) => void;
+    message: Message;
+    widget_data: WidgetData;
+    rerender: boolean;
+}): void {
+    assert(widget_data.widget_type === "sp_ai");
+
+    const extra_data = (widget_data.data ?? {}) as any;
+    const state: WidgetState = normalize_extra_data(extra_data);
+
+    const blocks_for_template = state.blocks.map((b) => {
+        if (b.kind === "markdown") {
+            // Client-side markdown rendering, then enhance with rendered_markdown.ts
+            // (spoilers, code block copy buttons, etc.).
+            const rendered = markdown.render(b.text).content;
+            return {
+                ...b,
+                is_markdown: true,
+                markdown_html: rendered,
+            };
+        }
+
+        return {
+            ...b,
+            is_markdown: false,
+            markdown_html: "",
+        };
+    });
+
+    // Tool-call parity: show Args/Parameters at the very top of the card.
+    const argsBlock = blocks_for_template.find((b) => {
+        if (b.kind !== "code") return false;
+        const t = String(b.title || "").trim().toLowerCase();
+        return t === "args" || t === "arguments" || t === "parameters";
+    });
+    const has_args_block = argsBlock !== undefined;
+    const args_block_index = argsBlock?.index ?? -1;
+    const args_block_title = argsBlock?.title ?? "Args";
+    const args_block_language = argsBlock?.language ?? "";
+    const args_block_text = argsBlock?.text ?? "";
+
+    const blocks_without_args = has_args_block
+        ? blocks_for_template.filter((b) => b.index !== args_block_index)
+        : blocks_for_template;
+
+    // Foreground tool stdout/stderr: render as a compact, scrolling preview area
+    // rather than a separate nested block section.
+    const streamBlocks =
+        state.kind === "tool"
+            ? blocks_without_args.filter((b) => b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr"))
+            : [];
+    const has_tool_stream_preview = streamBlocks.length > 0;
+    const tool_stream_preview_title = streamBlocks.some((b) => b.channel === "stderr")
+        ? "Stdout / Stderr"
+        : "Stdout";
+    const tool_stream_preview_text = streamBlocks
+        .map((b) => {
+            const t = String(b.text || "");
+            if (streamBlocks.length === 1) return t;
+            return `${b.channel}: ${t}`;
+        })
+        .join("\n");
+
+    const tool_stream_preview_text_trimmed = tool_stream_preview_text.trim();
+    const tool_stream_lines = tool_stream_preview_text_trimmed
+        ? tool_stream_preview_text_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
+        : [];
+    const tool_stream_tail_lines = tool_stream_lines.length > 0
+        ? tool_stream_lines.slice(Math.max(0, tool_stream_lines.length - 3))
+        : [];
+    const tool_stream_tail = tool_stream_tail_lines.join("\n");
+    const tool_stream_more_count = Math.max(0, tool_stream_lines.length - tool_stream_tail_lines.length);
+    const has_tool_stream_more = tool_stream_more_count > 0;
+    const tool_stream_more_label = has_tool_stream_more
+        ? `+${tool_stream_more_count} more line${tool_stream_more_count === 1 ? "" : "s"}`
+        : "";
+
+    const blocks_without_args_or_streams = has_tool_stream_preview
+        ? blocks_without_args.filter((b) => !(b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr")))
+        : blocks_without_args;
+
+    const html = render_widgets_sp_ai_widget({
+        ...state,
+        kind_label: kind_label(state.kind),
+        status_label: status_label(state.status),
+        show_status_pill: state.kind !== "error",
+        tool_status_label: tool_status_label(state.status),
+        show_kind_badge: state.kind !== "subagent_group",
+        is_subagent_group_card: state.kind === "subagent_group",
+        is_thinking_kind: state.kind === "thinking",
+        reasoning_label: state.status === "running" ? "Thinking\u2026" : "Thought for a few seconds",
+        reasoning_text: state.output || state.caption || "",
+        has_reasoning_text: (state.output || state.caption || "") !== "",
+        // Auto-expand while streaming content; collapsed when done.
+        reasoning_expanded:
+            state.kind === "thinking" &&
+            state.status === "running" &&
+            (state.output || state.caption || "") !== "" ? "true" : "false",
+        reasoning_content_hidden:
+            state.kind === "thinking" &&
+            state.status === "running" &&
+            (state.output || state.caption || "") !== "" ? "false" : "true",
+        is_tool_kind: state.kind === "tool",
+        tool_title: present_tool_title(state.tool || state.title),
+        tool_open:
+            state.kind === "tool" &&
+            (state.status === "pending" ||
+                state.status === "running" ||
+                state.status === "approval_requested" ||
+                state.status === "error" ||
+                state.status === "denied"),
+        show_tool_approval_actions: state.kind === "tool" && state.status === "approval_requested",
+        show_caption: state.display === "card_with_caption" && state.caption !== "",
+        show_tool: state.tool !== "",
+        has_input:
+            state.blocks.length === 0 &&
+            !state.has_subagent_groups &&
+            !state.has_background_tasks &&
+            state.input !== "",
+        has_output:
+            state.blocks.length === 0 &&
+            !state.has_subagent_groups &&
+            !state.has_background_tasks &&
+            state.output !== "",
+        has_blocks: state.blocks.length > 0,
+        has_args_block,
+        args_block_index,
+        args_block_title,
+        args_block_language,
+        args_block_text,
+        has_tool_stream_preview,
+        tool_stream_preview_title,
+        tool_stream_preview_text: tool_stream_preview_text_trimmed,
+        tool_stream_preview_tail: tool_stream_tail,
+        has_tool_stream_more,
+        tool_stream_more_label,
+        has_blocks: blocks_without_args_or_streams.length > 0,
+        blocks: blocks_without_args_or_streams,
+        show_abort: state.status === "running",
+        show_retry: state.status !== "running",
+        show_approve: state.kind === "ask",
+        show_deny: state.kind === "ask",
+        has_widget_actions: true,
+        show_parallel: state.parallel !== undefined,
+        parallel_first: state.parallel ? !state.parallel.hasPrev : false,
+        parallel_last: state.parallel ? !state.parallel.hasNext : false,
+    });
+
+    $elem.html(html);
+
+    // Enhance rendered markdown blocks (spoilers, codeblock copy buttons, etc.).
+    $elem.find(".sp-ai-markdown.rendered_markdown").each(function () {
+        update_rendered_markdown_elements($(this));
+    });
+
+    // Apply syntax highlighting to all code blocks inside this widget.
+    void apply_sp_ai_highlighting($elem[0] as HTMLElement);
+
+    // Reasoning trigger: toggle collapsible content.
+    $elem.find("button.sp-ai-reasoning-trigger").on("click", (e) => {
+        e.stopPropagation();
+        const trigger = e.currentTarget as HTMLElement;
+        const expanded = trigger.getAttribute("aria-expanded") === "true";
+        trigger.setAttribute("aria-expanded", String(!expanded));
+        const content = trigger.closest(".sp-ai-reasoning")?.querySelector(".sp-ai-reasoning-content");
+        if (content) {
+            content.setAttribute("aria-hidden", String(expanded));
+        }
+    });
+
+    $elem.find("button[data-copy]").on("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const target = $(e.currentTarget).attr("data-copy") ?? "";
+        const text = target === "input" ? state.input : target === "output" ? state.output : "";
+        void copy_text(text);
+    });
+
+    $elem.find("button[data-copy-block]").on("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const raw_index = $(e.currentTarget).attr("data-copy-block") ?? "";
+        const index = Number.parseInt(raw_index, 10);
+        if (!Number.isInteger(index)) {
+            return;
+        }
+
+        const block = state.blocks.find((item) => item.index === index);
+        if (!block) {
+            return;
+        }
+
+        void copy_text(block.copy_text);
+    });
+
+    $elem.find("button[data-copy-bg-task-command]").on("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const raw = $(e.currentTarget).attr("data-copy-bg-task-command") ?? "";
+        const [raw_group, raw_task] = raw.split(":", 2);
+        const group_index = Number.parseInt(raw_group ?? "", 10);
+        const task_index = Number.parseInt(raw_task ?? "", 10);
+        if (!Number.isInteger(group_index) || !Number.isInteger(task_index)) {
+            return;
+        }
+
+        const group = state.background_task_groups.find((g) => g.group_index === group_index);
+        const task = group?.tasks.find((t) => t.task_index === task_index);
+        if (!task) {
+            return;
+        }
+
+        void copy_text(task.command);
+    });
+
+    // Wire output-toggle payload swap (collapsed tail vs full scrollable).
+    // We keep a single <pre> in the layout to avoid adding vertical whitespace.
+    const syncOutputToggle = (root: HTMLElement): void => {
+        const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
+        if (!pre) return;
+
+        const tail = root.querySelector("pre.sp-ai-output-toggle-data-tail")?.textContent ?? "";
+        const full = root.querySelector("pre.sp-ai-output-toggle-data-full")?.textContent ?? "";
+        const expanded = root.classList.contains("is-expanded");
+        pre.textContent = expanded ? full : tail;
+    };
+
+    $elem.find("[data-sp-ai-output-toggle]").each(function () {
+        try {
+            syncOutputToggle(this as HTMLElement);
+        } catch {
+            // ignore
+        }
+    });
+
+    // Expand/collapse compact output previews (subagents, background tasks, tool stdout).
+    $elem.find("button[data-sp-ai-toggle-output]").on("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.currentTarget as HTMLElement;
+        const root = btn.closest("[data-sp-ai-output-toggle]") as HTMLElement | null;
+        if (!root) return;
+        root.classList.toggle("is-expanded");
+
+        syncOutputToggle(root);
+
+        // Scroll expanded output to bottom by default.
+        if (root.classList.contains("is-expanded")) {
+            const pre = root.querySelector("pre.sp-ai-output-toggle-pre") as HTMLElement | null;
+            if (pre) {
+                try {
+                    pre.scrollTop = pre.scrollHeight;
+                } catch {
+                    // ignore
+                }
+            }
+        }
+    });
+
+    // Scroll expanded output blocks to the bottom by default.
+    $elem.find(".sp-ai-output-toggle.is-expanded pre.sp-ai-output-toggle-pre").each(function () {
+        try {
+            (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
+        } catch {
+            // Ignore scroll failures; output preview is best-effort.
+        }
+    });
+
+    $elem.find("pre.sp-ai-output-toggle-pre").each(function () {
+        // Only scroll pre elements that are already in the expanded state.
+        const root = (this as HTMLElement).closest(".sp-ai-output-toggle");
+        if (!root || !root.classList.contains("is-expanded")) {
+            return;
+        }
+        try {
+            (this as HTMLElement).scrollTop = (this as HTMLElement).scrollHeight;
+        } catch {
+            // Ignore scroll failures; output preview is best-effort.
+        }
+    });
+
+    $elem.find("button[data-action]").on("click", (e) => {
+        e.stopPropagation();
+        const action = $(e.currentTarget).attr("data-action") ?? "";
+        if (action === "abort" || action === "retry" || action === "approve" || action === "deny") {
+            callback({type: "action", action: action as WidgetAction});
+        }
+    });
 }

@@ -1,16 +1,22 @@
+---
+name: fetch-zulip-messages
+description: "Fetch messages from a Zulip narrow URL (chat.zulip.org). Use when the user shares a Zulip conversation link, when you encounter a Zulip link in a GitHub issue or PR, or when a Zulip conversation references another Zulip thread that may be relevant."
+argument-hint: "[url]"
+---
+
 # Fetch Zulip Web-Public Messages
 
 When a user shares a Zulip URL (e.g., `https://chat.zulip.org/#narrow/channel/...`),
-use the `tools/fetch-zulip-web-public-messages` script to fetch the messages.
+use the `.claude/skills/fetch-zulip-messages/fetch-zulip-web-public-messages` script to fetch the messages.
 
 ## Usage
 
 ```bash
 # Limit the range. Note however you usually want the entire conversation.
-.claude/skills/fetch-zulip-web-public-messages --num-before 100 --num-after 100 'URL'
+.claude/skills/fetch-zulip-messages/fetch-zulip-web-public-messages --num-before 100 --num-after 100 'URL'
 
 # Get raw JSON output
-tools/fetch-zulip-web-public-messages --json 'URL'
+.claude/skills/fetch-zulip-messages/fetch-zulip-web-public-messages --json 'URL'
 ```
 
 ## Notes

@@ -68,12 +68,18 @@ export function clear(): void {
 }
 
 export function close(): void {
-    zoomed = false;
     clear();
-    ui_util.enable_left_sidebar_search();
+    if (zoomed) {
+        zoomed = false;
+        ui_util.enable_left_sidebar_search();
+    }
 }
 
 export function zoom_out(): void {
+    if (!zoomed) {
+        return;
+    }
+
     zoomed = false;
     ui_util.enable_left_sidebar_search();
 
@@ -474,7 +480,15 @@ export function left_sidebar_scroll_zoomed_in_topic_into_view(): void {
             .find(".stream-list-subsection-header")
             .outerHeight(true) ?? 0;
     sticky_header_height += channel_folder_header_height;
-    scroll_util.scroll_element_into_container($selected_topic, $container, sticky_header_height);
+    const $topic_list = $selected_topic.closest(".topic-list");
+    const topic_list_height = $topic_list.outerHeight(true) ?? 0;
+    const available_topic_height = ($container.height() ?? 0) - sticky_header_height;
+
+    let $scroll_target = $selected_topic;
+    if (topic_list_height <= available_topic_height) {
+        $scroll_target = $topic_list;
+    }
+    scroll_util.scroll_element_into_container($scroll_target, $container, sticky_header_height);
 }
 
 // For zooming, we only do topic-list stuff here...let stream_list
@@ -582,7 +596,19 @@ export function setup_topic_search_typeahead(): void {
             const pills = topic_filter_pill_widget!.items();
             const current_syntaxes = new Set(pills.map((pill) => pill.syntax));
             const query = $("#topic_filter_query").text().trim();
+            const has_locally_available_resolved_topics =
+                stream_topic_history.stream_has_locally_available_resolved_topics(stream_id);
             return topic_filter_pill.filter_options.filter((option) => {
+                if (!has_locally_available_resolved_topics && option.syntax.endsWith("resolved")) {
+                    // Technically, it could still be useful to show
+                    // the is:resolved option, as local data is not
+                    // complete. But because zooming the topic list
+                    // does the topic history fetch, it's reasonable to
+                    // ignore that possibility and just only show the
+                    // resolved topic options if we can confirm
+                    // they're relevant.
+                    return false;
+                }
                 if (current_syntaxes.has(option.syntax)) {
                     return false;
                 }

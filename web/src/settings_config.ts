@@ -305,6 +305,21 @@ type PolicyValue = {
     description: string;
 };
 
+export const realm_media_preview_size_values = [
+    {
+        code: 100,
+        description: $t({defaultMessage: "Small"}),
+    },
+    {
+        code: 150,
+        description: $t({defaultMessage: "Medium"}),
+    },
+    {
+        code: 200,
+        description: $t({defaultMessage: "Large"}),
+    },
+];
+
 type RealmTopicsPolicyValues = {
     allow_empty_topic: PolicyValue;
     disable_empty_topic: PolicyValue;
