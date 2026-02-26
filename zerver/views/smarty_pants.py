@@ -2058,8 +2058,10 @@ def s2s_smarty_pants_tools_execute(request: HttpRequest) -> HttpResponse:
     if message.sender_id != invoker.id:
         raise AccessDeniedError()
 
-    # Unlike tool execution, message replay can be long-lived (backfill and live sync).
-    # We still pin invoker identity to a real message, but do not require freshness.
+    # Tool execution is intentionally short-lived; require a fresh invoker message
+    # to reduce replay risk if an invoker_message_id ever leaks.
+    if timezone_now() - message.date_sent > SMARTY_PANTS_S2S_INVOCATION_FRESHNESS_WINDOW:
+        raise JsonableError(_("Invoker message is too old."))
 
     normalized_args = _normalize_tool_args_for_cache(args)
     cache_key = _s2s_tools_execute_cache_key(
