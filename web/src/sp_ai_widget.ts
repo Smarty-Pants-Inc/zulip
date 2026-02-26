@@ -20,7 +20,6 @@ import {
     sp_ai_todo_v2_block_schema,
     type SpAiWidgetOutboundData,
     type SpAiWidgetExtraData,
-    type SpAiWidgetInboundEvent,
 } from "./sp_ai_data.ts";
 import type {Event} from "./widget_data.ts";
 import type {AnyWidgetData, WidgetData} from "./widget_schema.ts";
@@ -288,7 +287,9 @@ function normalize_plan_blocks(extra_data: SpAiWidgetExtraData): {
     }
 
     const plan_section_title =
-        plan_groups.length === 1 && plan_groups[0]?.title.trim() !== "" ? plan_groups[0].title : "Plan";
+        plan_groups.length === 1 && plan_groups[0] && plan_groups[0].title.trim() !== ""
+            ? plan_groups[0].title
+            : "Plan";
 
     // Avoid repeating the same title in the section header and group title.
     if (plan_groups.length === 1) {
@@ -358,7 +359,7 @@ function normalize_todo_blocks(extra_data: SpAiWidgetExtraData): {
             if (text === "") {
                 continue;
             }
-            items.push({item_index, text, checked: m[1].toLowerCase() === "x"});
+            items.push({item_index, text, checked: (m[1] ?? "").toLowerCase() === "x"});
         }
         if (items.length === 0) {
             continue;
@@ -373,7 +374,9 @@ function normalize_todo_blocks(extra_data: SpAiWidgetExtraData): {
     }
 
     const todo_section_title =
-        todo_groups.length === 1 && todo_groups[0]?.title.trim() !== "" ? todo_groups[0].title : "Todo";
+        todo_groups.length === 1 && todo_groups[0] && todo_groups[0].title.trim() !== ""
+            ? todo_groups[0].title
+            : "Todo";
 
     // Avoid repeating the same title in the section header and group title.
     if (todo_groups.length === 1) {
@@ -569,7 +572,7 @@ function normalize_subagent_groups(extra_data: SpAiWidgetExtraData): {
     }
 
     const subagent_section_title =
-        subagent_groups.length === 1 && subagent_groups[0]?.title.trim() !== ""
+        subagent_groups.length === 1 && subagent_groups[0] && subagent_groups[0].title.trim() !== ""
             ? subagent_groups[0].title
             : "Subagents";
 
@@ -621,7 +624,7 @@ function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
                 const output_preview_trimmed = output_preview.trim();
                 const has_output_preview = output_preview_trimmed !== "";
                 const lines = has_output_preview
-                    ? output_preview_trimmed.split(/\r?\n/).filter((ln) => ln !== "")
+                    ? output_preview_trimmed.split(/\r?\n/).filter((ln: string) => ln !== "")
                     : [];
                 const tail_lines = lines.length > 0 ? lines.slice(Math.max(0, lines.length - 3)) : [];
                 const more_count = Math.max(0, lines.length - tail_lines.length);
@@ -675,7 +678,9 @@ function normalize_background_tasks(extra_data: SpAiWidgetExtraData): {
     }
 
     const background_tasks_section_title =
-        background_task_groups.length === 1 && background_task_groups[0]?.title.trim() !== ""
+        background_task_groups.length === 1 &&
+        background_task_groups[0] &&
+        background_task_groups[0].title.trim() !== ""
             ? background_task_groups[0].title
             : "Background tasks";
 
@@ -1085,7 +1090,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
                 continue;
             }
             const rec = block as Record<string, unknown>;
-            if (rec.kind === "stream") {
+            if (rec["kind"] === "stream") {
                 stream_skip_block_indexes.add(index);
             }
         }
@@ -1443,7 +1448,6 @@ export function render({
             !state.has_subagent_groups &&
             !state.has_background_tasks &&
             state.output !== "",
-        has_blocks: state.blocks.length > 0,
         has_args_block,
         args_block_index,
         args_block_title,
