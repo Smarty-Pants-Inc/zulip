@@ -39,6 +39,21 @@ export function get_message_ids(): number[] {
     return [...generic_widget_map.keys()];
 }
 
+function get_sp_ai_display(extra_data: unknown): "card_only" | "card_with_caption" | undefined {
+    if (!extra_data || typeof extra_data !== "object" || Array.isArray(extra_data)) {
+        return undefined;
+    }
+
+    // We intentionally keep sp_ai extra_data permissive and versioned; it evolves quickly.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const display = (extra_data as {display?: unknown}).display;
+    if (display === "card_only" || display === "card_with_caption") {
+        return display;
+    }
+
+    return undefined;
+}
+
 function set_widget_in_message(
     $row: JQuery,
     $widget_elem: JQuery,
@@ -52,10 +67,7 @@ function set_widget_in_message(
     // "card + text" variants without changing the server payload shape.
     if (widget_data.widget_type === "sp_ai") {
         const existing_text = $content_holder.text().trim();
-        const display = (widget_data.data && typeof widget_data.data === "object" ? (widget_data.data as any).display : undefined) as
-            | "card_only"
-            | "card_with_caption"
-            | undefined;
+        const display = get_sp_ai_display(widget_data.data);
 
         if (display === "card_only" || existing_text.startsWith("/sp_ai")) {
             // Card-only mode: the raw message body isn't useful to render alongside the widget.
