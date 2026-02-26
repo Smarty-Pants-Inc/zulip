@@ -1,5 +1,26 @@
 # Zulip overview
 
+## Smarty Pants fork notes
+
+This repository is forked by Smarty Pants Inc.
+
+Fork goals:
+
+- Maintain a small, reviewable patch stack on top of upstream Zulip.
+- Make upstream syncs routine (so we can rebuild/redeploy our fork frequently).
+
+How the fork is maintained:
+
+- `mirror/upstream-main` is a fast-forward-only mirror of upstream `main`.
+- `sp/main` is the integration branch we deploy from.
+- `sp/topic/...` branches are grouped change sets (topics) that merge into `sp/main`.
+
+Docs:
+
+- Fork workflow: `docs/smarty-pants/fork-workflow.md`
+- Upstream sync helper: `tools/smarty-pants/sync-upstream.sh`
+
+
 [Zulip](https://zulip.com) is an open-source organized team chat app with unique
 [topic-based threading][why-zulip] that combines the best of email and chat to
 make remote work productive and delightful. Fortune 500 companies, [leading open
