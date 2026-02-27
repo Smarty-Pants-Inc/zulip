@@ -1258,8 +1258,13 @@
         100% { background-position: 0% center; }
     }
 
-    /* Collapsible content area. */
-    .sp-ai-reasoning-content {
+    /* Collapsible content area.
+     *
+     * In production builds, we rely on explicit aria-hidden selectors for the
+     * collapsed/expanded states (rather than an unqualified base rule) to
+     * avoid any surprises from CSS build/minification.
+     */
+    .sp-ai-reasoning-content[aria-hidden="true"] {
         /* Important: when collapsed (max-height: 0), we must clip children;
          * otherwise the content still paints and only whitespace collapses.
          */
