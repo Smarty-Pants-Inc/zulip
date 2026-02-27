@@ -1295,18 +1295,71 @@ export function activate({any_data}: {any_data: AnyWidgetData; message: Message}
             }
 
             if (evt.type === "set_status") {
-                widget_data.data = {...cur, status: evt.status};
+                const next: any = {...cur, status: evt.status};
+                // v2 payloads store status on turn as well.
+                if (next.turn && typeof next.turn === "object" && !Array.isArray(next.turn)) {
+                    next.turn = {...next.turn, status: evt.status};
+                }
+                widget_data.data = next;
                 continue;
             }
 
             if (evt.type === "set_output") {
-                widget_data.data = {...cur, output: evt.output};
+                const next: any = {...cur, output: evt.output};
+                // v2 payloads store output on turn as well.
+                if (next.turn && typeof next.turn === "object" && !Array.isArray(next.turn)) {
+                    next.turn = {...next.turn, output: evt.output};
+                }
+
+                // Auto-expand thinking blocks when new output arrives, unless the user
+                // explicitly collapsed them.
+                const kind =
+                    typeof next.turn?.kind === "string"
+                        ? next.turn.kind
+                        : typeof next.kind === "string"
+                          ? next.kind
+                          : "";
+                if (kind === "thinking" && next._sp_ai_reasoning_expanded === undefined) {
+                    next._sp_ai_reasoning_expanded = true;
+                }
+
+                widget_data.data = next;
                 continue;
             }
 
             if (evt.type === "append_output") {
-                const prev = typeof cur.output === "string" ? cur.output : "";
-                widget_data.data = {...cur, output: prev === "" ? evt.chunk : prev + evt.chunk};
+                const prev_text =
+                    cur.turn && typeof (cur.turn as any).output === "string"
+                        ? String((cur.turn as any).output)
+                        : typeof cur.output === "string"
+                          ? cur.output
+                          : "";
+
+                const next_output = prev_text === "" ? evt.chunk : prev_text + evt.chunk;
+
+                const next: any = {...cur, output: next_output};
+
+                // v2 payloads store output on turn as well.
+                if (next.turn && typeof next.turn === "object" && !Array.isArray(next.turn)) {
+                    next.turn = {
+                        ...next.turn,
+                        output: next_output,
+                    };
+                }
+
+                // Auto-expand thinking blocks when new output arrives, unless the user
+                // explicitly collapsed them.
+                const kind =
+                    typeof next.turn?.kind === "string"
+                        ? next.turn.kind
+                        : typeof next.kind === "string"
+                          ? next.kind
+                          : "";
+                if (kind === "thinking" && next._sp_ai_reasoning_expanded === undefined) {
+                    next._sp_ai_reasoning_expanded = true;
+                }
+
+                widget_data.data = next;
                 continue;
             }
         }
@@ -1413,6 +1466,15 @@ export function render({
         ? blocks_without_args.filter((b) => !(b.kind === "stream" && (b.channel === "stdout" || b.channel === "stderr")))
         : blocks_without_args;
 
+    // Persist reasoning expand/collapse across rerenders, especially for appended output.
+    const reasoning_expanded_bool = (() => {
+        const v = extra_data?._sp_ai_reasoning_expanded;
+        if (typeof v === "boolean") {
+            return v;
+        }
+        return state.kind === "thinking" && state.status === "running" && reasoning_raw.trim() !== "";
+    })();
+
     const html = render_widgets_sp_ai_widget({
         ...state,
         kind_label: kind_label(state.kind),
@@ -1429,15 +1491,8 @@ export function render({
         reasoning_html,
         // Keep the has_* check based on the raw text for predictable behavior.
         has_reasoning_text: reasoning_raw.trim() !== "",
-        // Auto-expand while streaming content; collapsed when done.
-        reasoning_expanded:
-            state.kind === "thinking" &&
-            state.status === "running" &&
-            reasoning_raw.trim() !== "" ? "true" : "false",
-        reasoning_content_hidden:
-            state.kind === "thinking" &&
-            state.status === "running" &&
-            reasoning_raw.trim() !== "" ? "false" : "true",
+        reasoning_expanded: reasoning_expanded_bool ? "true" : "false",
+        reasoning_content_hidden: reasoning_expanded_bool ? "false" : "true",
         is_tool_kind: state.kind === "tool",
         tool_title: present_tool_title(state.tool || state.title),
         tool_open:
@@ -1498,10 +1553,16 @@ export function render({
         e.stopPropagation();
         const trigger = e.currentTarget as HTMLElement;
         const expanded = trigger.getAttribute("aria-expanded") === "true";
-        trigger.setAttribute("aria-expanded", String(!expanded));
+        const next_expanded = !expanded;
+        trigger.setAttribute("aria-expanded", String(next_expanded));
         const content = trigger.closest(".sp-ai-reasoning")?.querySelector(".sp-ai-reasoning-content");
         if (content) {
-            content.setAttribute("aria-hidden", String(expanded));
+            content.setAttribute("aria-hidden", String(!next_expanded));
+        }
+
+        // Keep the user's preference across rerenders.
+        if (widget_data.data && typeof widget_data.data === "object" && !Array.isArray(widget_data.data)) {
+            (widget_data.data as any)._sp_ai_reasoning_expanded = next_expanded;
         }
     });
 
