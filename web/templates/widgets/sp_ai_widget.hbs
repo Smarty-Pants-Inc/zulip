@@ -19,7 +19,7 @@
     </button>
     {{#if has_reasoning_text}}
     <div class="sp-ai-reasoning-content" aria-hidden="{{reasoning_content_hidden}}">
-        <div class="sp-ai-reasoning-text">{{reasoning_text}}</div>
+        <div class="sp-ai-reasoning-text sp-ai-markdown rendered_markdown">{{{reasoning_html}}}</div>
     </div>
     {{/if}}
 </div>

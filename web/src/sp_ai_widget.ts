@@ -1334,6 +1334,14 @@ export function render({
     const extra_data = (widget_data.data ?? {}) as any;
     const state: WidgetState = normalize_extra_data(extra_data);
 
+    // Render thinking content as markdown (safe, sanitized HTML).
+    //
+    // We intentionally do this client-side for parity with other widget blocks
+    // and so formatting like **bold**, inline code, and fenced code blocks render
+    // correctly inside the collapsible reasoning panel.
+    const reasoning_raw = state.kind === "thinking" ? String(state.output || state.caption || "") : "";
+    const reasoning_html = reasoning_raw.trim() ? markdown.render(reasoning_raw).content : "";
+
     const blocks_for_template = state.blocks.map((b) => {
         if (b.kind === "markdown") {
             // Client-side markdown rendering, then enhance with rendered_markdown.ts
@@ -1418,17 +1426,18 @@ export function render({
             state.status === "running"
                 ? "Thinking\u2026"
                 : (state.caption || "").trim() || "Thought for a few seconds",
-        reasoning_text: state.output || state.caption || "",
-        has_reasoning_text: (state.output || state.caption || "") !== "",
+        reasoning_html,
+        // Keep the has_* check based on the raw text for predictable behavior.
+        has_reasoning_text: reasoning_raw.trim() !== "",
         // Auto-expand while streaming content; collapsed when done.
         reasoning_expanded:
             state.kind === "thinking" &&
             state.status === "running" &&
-            (state.output || state.caption || "") !== "" ? "true" : "false",
+            reasoning_raw.trim() !== "" ? "true" : "false",
         reasoning_content_hidden:
             state.kind === "thinking" &&
             state.status === "running" &&
-            (state.output || state.caption || "") !== "" ? "false" : "true",
+            reasoning_raw.trim() !== "" ? "false" : "true",
         is_tool_kind: state.kind === "tool",
         tool_title: present_tool_title(state.tool || state.title),
         tool_open:
