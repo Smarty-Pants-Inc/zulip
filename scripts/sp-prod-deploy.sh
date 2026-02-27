@@ -124,31 +124,48 @@ if len(paths) < 1000:
     print(f"manifest suspiciously small: paths_count={len(paths)}")
     sys.exit(2)
 
-def pick(pattern: str):
-    rx = re.compile(pattern)
-    for k, v in paths.items():
-        if rx.match(k):
-            return k, v
-    return None, None
+stats_path = os.path.join(deploy_root, "webpack-stats-production.json")
+if not os.path.exists(stats_path):
+    print(f"missing webpack stats: {stats_path}")
+    sys.exit(2)
 
-css_k, css_v = pick(r"^webpack-bundles/app\.[0-9a-f]+\.css$")
-js_k, js_v = pick(r"^webpack-bundles/app\.[0-9a-f]+\.js$")
-if not css_k or not js_k:
-    # We still consider this a failure: app.* is required for the main UI.
-    print("missing required webpack bundles in manifest")
-    print("found_css=", bool(css_k), "found_js=", bool(js_k))
+with open(stats_path, "r", encoding="utf-8") as f:
+    stats = json.load(f)
+
+chunks = stats.get("chunks") or {}
+if not isinstance(chunks, dict):
+    print("invalid webpack stats: chunks is not a dict")
+    sys.exit(2)
+
+entry = chunks.get("app")
+if not isinstance(entry, list) or not entry:
+    print("invalid webpack stats: missing chunks['app']")
     sys.exit(2)
 
 static_root = "/home/zulip/prod-static"
-for label, rel in [("css", css_v), ("js", js_v)]:
+missing = []
+for filename in entry:
+    if not isinstance(filename, str) or not filename:
+        continue
+    key = "webpack-bundles/" + filename
+    if key not in paths:
+        missing.append(key)
+        continue
+    rel = paths.get(key) or key
     p = os.path.join(static_root, rel)
     if not os.path.exists(p):
-        print(f"manifest references missing file: {label} {rel} -> {p}")
-        sys.exit(2)
+        missing.append(key + " (file missing)")
+
+if missing:
+    print("manifest missing entries required by webpack stats (app entrypoint):")
+    for k in missing[:25]:
+        print("-", k)
+    if len(missing) > 25:
+        print(f"... and {len(missing) - 25} more")
+    sys.exit(2)
 
 print(f"ok: manifest paths_count={len(paths)}")
-print(f"ok: {css_k}")
-print(f"ok: {js_k}")
+print(f"ok: webpack app chunks={len(entry)}")
 PY
 
   log "+ local HTTP smoke"
