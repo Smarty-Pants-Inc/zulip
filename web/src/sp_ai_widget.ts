@@ -1414,7 +1414,10 @@ export function render({
         show_kind_badge: state.kind !== "subagent_group",
         is_subagent_group_card: state.kind === "subagent_group",
         is_thinking_kind: state.kind === "thinking",
-        reasoning_label: state.status === "running" ? "Thinking\u2026" : "Thought for a few seconds",
+        reasoning_label:
+            state.status === "running"
+                ? "Thinking\u2026"
+                : (state.caption || "").trim() || "Thought for a few seconds",
         reasoning_text: state.output || state.caption || "",
         has_reasoning_text: (state.output || state.caption || "") !== "",
         // Auto-expand while streaming content; collapsed when done.
