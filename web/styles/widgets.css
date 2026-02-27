@@ -1260,7 +1260,10 @@
 
     /* Collapsible content area. */
     .sp-ai-reasoning-content {
-        overflow: visible;
+        /* Important: when collapsed (max-height: 0), we must clip children;
+         * otherwise the content still paints and only whitespace collapses.
+         */
+        overflow: hidden;
         max-height: 0;
         opacity: 0;
         transition: max-height 200ms ease, opacity 150ms ease, margin 150ms ease;
@@ -1271,6 +1274,7 @@
         max-height: 2000px; /* generous upper bound; collapses to content */
         opacity: 1;
         margin-top: 8px;
+        overflow: auto;
     }
 
     .sp-ai-reasoning-text {
