@@ -33,6 +33,9 @@ These paths are fork-specific and intended to make maintenance predictable:
 - `docs/smarty-pants/`
   - Fork maintenance docs (this file, upstream sync notes, etc.).
 
+  - Production deploy runbook:
+    - `docs/smarty-pants/prod-deploy.md`
+
 - `tools/smarty-pants/`
   - Helper scripts for fork maintenance.
 
