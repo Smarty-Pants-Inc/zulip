@@ -96,13 +96,16 @@ fi
 
 if [ "$DO_CHECK" -eq 1 ]; then
   log "+ validate staticfiles.json and key bundles"
-  python3 - <<PY
+  DEPLOY_ROOT="$DEPLOY_ROOT" python3 - <<'PY'
 import json
 import os
 import re
 import sys
 
-deploy_root = ${DEPLOY_ROOT!r}
+deploy_root = os.environ.get("DEPLOY_ROOT", "")
+if not deploy_root:
+    print("missing DEPLOY_ROOT env")
+    sys.exit(2)
 manifest_path = os.path.join(deploy_root, "staticfiles.json")
 
 if not os.path.exists(manifest_path):
