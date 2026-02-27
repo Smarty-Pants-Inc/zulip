@@ -1253,18 +1253,8 @@
         animation: sp-ai-shimmer 2s linear infinite;
     }
 
-    @keyframes sp-ai-shimmer {
-        0% { background-position: 100% center; }
-        100% { background-position: 0% center; }
-    }
-
-    /* Collapsible content area.
-     *
-     * In production builds, we rely on explicit aria-hidden selectors for the
-     * collapsed/expanded states (rather than an unqualified base rule) to
-     * avoid any surprises from CSS build/minification.
-     */
-    .sp-ai-reasoning-content[aria-hidden="true"] {
+    /* Collapsible content area. */
+    .sp-ai-reasoning-content {
         /* Important: when collapsed (max-height: 0), we must clip children;
          * otherwise the content still paints and only whitespace collapses.
          */
@@ -1290,6 +1280,16 @@
         white-space: pre-wrap;
         overflow-wrap: anywhere;
     }
+}
+
+@keyframes sp-ai-shimmer {
+    0% { background-position: 100% center; }
+    100% { background-position: 0% center; }
+}
+
+@keyframes sp-ai-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
 /*
@@ -1407,11 +1407,6 @@
     &[data-sp-ai-status="error"] .sp-ai-tool-status-text { color: #ef4444; }
     &[data-sp-ai-status="aborted"] .sp-ai-tool-status-text { color: #f97316; }
     &[data-sp-ai-status="denied"] .sp-ai-tool-status-text { color: #f97316; }
-
-    @keyframes sp-ai-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
-    }
 
     .sp-ai-tool-summary-right {
         display: flex;
