@@ -11,6 +11,7 @@ import $ from "jquery";
 import * as blueslip from "./blueslip.ts";
 import type {Message} from "./message_store.ts";
 import * as markdown from "./markdown.ts";
+import * as people from "./people.ts";
 import {update_elements as update_rendered_markdown_elements} from "./rendered_markdown.ts";
 import {
     sp_ai_widget_inbound_event_schema,
@@ -171,6 +172,9 @@ type WidgetState = WidgetBaseState & {
     has_todo_blocks: boolean;
     todo_section_title: string;
     todo_groups: TodoGroupTemplate[];
+
+    // Optional per-widget permission gating for abort.
+    can_abort: boolean;
 };
 
 function format_duration_ms(duration_ms: number): string {
@@ -1060,6 +1064,13 @@ function normalize_turn_blocks(
 function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
     const ed: any = extra_data || {};
 
+    // Optional per-widget permission for abort.
+    const abort_user_ids_raw = Array.isArray(ed.abort_user_ids) ? ed.abort_user_ids : undefined;
+    const abort_user_ids = abort_user_ids_raw
+        ? abort_user_ids_raw.filter((x: unknown) => typeof x === "number" && Number.isFinite(x))
+        : undefined;
+    const can_abort = abort_user_ids ? abort_user_ids.includes(people.my_current_user_id()) : true;
+
     // v2 turn payload, if present.
     const turn: any = ed.turn && typeof ed.turn === "object" ? ed.turn : null;
 
@@ -1173,6 +1184,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
     if (parsed.success) {
         return {
             ...parsed.data,
+            can_abort,
             turn_kind: normalized_turn_kind,
             turn_kind_label,
             has_subagent_groups: subagent_groups.length > 0,
@@ -1204,6 +1216,7 @@ function normalize_extra_data(extra_data: SpAiWidgetExtraData): WidgetState {
         output: "",
         blocks: [],
         parallel: undefined,
+        can_abort,
         turn_kind: normalized_turn_kind,
         turn_kind_label,
         has_subagent_groups: subagent_groups.length > 0,
@@ -1528,11 +1541,15 @@ export function render({
         tool_stream_more_label,
         has_blocks: blocks_without_args_or_streams.length > 0,
         blocks: blocks_without_args_or_streams,
-        show_abort: state.status === "running",
-        show_retry: state.status !== "running",
+        show_abort: state.status === "running" && state.can_abort,
+        // Thinking widgets are not retryable; retry is for completed tool/final cards.
+        show_retry: state.kind !== "thinking" && state.status !== "running",
         show_approve: state.kind === "ask",
         show_deny: state.kind === "ask",
-        has_widget_actions: true,
+        has_widget_actions:
+            (state.status === "running" && state.can_abort) ||
+            (state.kind !== "thinking" && state.status !== "running") ||
+            state.kind === "ask",
         show_parallel: state.parallel !== undefined,
         parallel_first: state.parallel ? !state.parallel.hasPrev : false,
         parallel_last: state.parallel ? !state.parallel.hasNext : false,

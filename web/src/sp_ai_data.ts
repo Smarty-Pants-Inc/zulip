@@ -266,6 +266,10 @@ export const sp_ai_widget_extra_data_schema = z.catchall(
 
         // v2 fields (turns)
         turn: z.optional(sp_ai_turn_schema),
+
+        // Optional per-widget permissions.
+        // When present, only these users should see the Abort/Interrupt button.
+        abort_user_ids: z.optional(z.array(z.number())),
     }),
     z.unknown(),
 );
